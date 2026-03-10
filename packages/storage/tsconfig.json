@@ -1,0 +1,13 @@
+{
+  "extends": "@tododoro/typescript-config/base.json",
+  "include": ["src"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "references": [
+    { "path": "../domain" }
+  ]
+}

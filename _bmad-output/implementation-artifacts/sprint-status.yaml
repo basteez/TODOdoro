@@ -42,7 +42,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   # Epic 1: Project Foundation & Domain Core
   epic-1: in-progress
-  1-1-scaffold-monorepo-configure-tooling: ready-for-dev
+  1-1-scaffold-monorepo-configure-tooling: review
   1-2-define-domain-event-types-and-port-interfaces: backlog
   1-3-implement-todo-aggregate-with-full-test-coverage: backlog
   1-4-implement-session-aggregate-with-full-test-coverage: backlog

@@ -1,0 +1,19 @@
+{
+  "name": "@tododoro/ui",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tododoro/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@tododoro/typescript-config": "workspace:*",
+    "typescript": "latest"
+  }
+}
