@@ -18,3 +18,14 @@ export type {
   Clock,
   IdGenerator,
 } from './ports.js';
+
+export type { TodoState } from './todo.js';
+export {
+  INITIAL_TODO_STATE,
+  reduceTodo,
+  declareTodo,
+  renameTodo,
+  positionTodo,
+  sealTodo,
+  releaseTodo,
+} from './todo.js';
