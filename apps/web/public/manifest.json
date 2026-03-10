@@ -1,0 +1,16 @@
+{
+  "name": "tododoro",
+  "short_name": "tododoro",
+  "description": "A Pomodoro-first, intention-based todo canvas.",
+  "theme_color": "#111827",
+  "background_color": "#0d1117",
+  "display": "standalone",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    }
+  ]
+}

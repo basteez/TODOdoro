@@ -1,6 +1,6 @@
 # Story 1.1: Scaffold Monorepo & Configure Tooling
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -28,57 +28,57 @@ So that all subsequent domain, storage, and UI work has a consistent, enforced f
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Initialize monorepo from template (AC: #1, #7)
-  - [ ] 1.1 Run `pnpm dlx create-turbo@latest tododoro -e with-vite --package-manager pnpm` from **parent directory** (see Dev Notes — Critical Gotcha below)
-  - [ ] 1.2 Delete `apps/docs` — tododoro has exactly one app (`apps/web`)
-  - [ ] 1.3 Rename all `@repo/` namespace references to `@tododoro/` across all `package.json` files and import statements
-  - [ ] 1.4 Verify `pnpm-workspace.yaml` contains `packages: ['apps/*', 'packages/*']`
+- [x] Task 1: Initialize monorepo from template (AC: #1, #7)
+  - [x] 1.1 Run `pnpm dlx create-turbo@latest tododoro -e with-vite --package-manager pnpm` from **parent directory** (see Dev Notes — Critical Gotcha below)
+  - [x] 1.2 Delete `apps/docs` — tododoro has exactly one app (`apps/web`)
+  - [x] 1.3 Rename all `@repo/` namespace references to `@tododoro/` across all `package.json` files and import statements
+  - [x] 1.4 Verify `pnpm-workspace.yaml` contains `packages: ['apps/*', 'packages/*']`
 
-- [ ] Task 2: Add required new packages (AC: #1)
-  - [ ] 2.1 Create `packages/domain/` with:
+- [x] Task 2: Add required new packages (AC: #1)
+  - [x] 2.1 Create `packages/domain/` with:
     - `package.json` → name `@tododoro/domain`, **zero production dependencies**, `devDependencies` only (vitest, typescript, @tododoro/typescript-config)
     - `src/index.ts` → empty barrel export (`export {};`)
     - `tsconfig.json` → extends typescript-config base, no `references` (leaf node), `composite: true`
     - `vitest.config.ts` → with 100% coverage thresholds (lines/functions/branches/statements all = 100)
-  - [ ] 2.2 Create `packages/storage/` with:
+  - [x] 2.2 Create `packages/storage/` with:
     - `package.json` → name `@tododoro/storage`, depends on `@tododoro/domain: workspace:*`
     - `src/index.ts` → empty barrel export (`export {};`)
     - `tsconfig.json` → extends base, `references: [{ path: "../domain" }]`
     - `vitest.config.ts` → standard coverage config (not 100% gate; domain has the hard gate)
-  - [ ] 2.3 Clear default components from `packages/ui/src/` (the `counter`, `header`, `setup-counter` defaults) — leave an empty `src/index.ts`; UI components are built in Epic 2
-  - [ ] 2.4 Update `packages/ui/package.json` → rename to `@tododoro/ui`, add `@tododoro/domain: workspace:*` dependency, update `tsconfig.json` references
+  - [x] 2.3 Clear default components from `packages/ui/src/` (the `counter`, `header`, `setup-counter` defaults) — leave an empty `src/index.ts`; UI components are built in Epic 2
+  - [x] 2.4 Update `packages/ui/package.json` → rename to `@tododoro/ui`, add `@tododoro/domain: workspace:*` dependency, update `tsconfig.json` references
 
-- [ ] Task 3: Configure TypeScript strict mode across all packages (AC: #2, #3)
-  - [ ] 3.1 Add to **root** `tsconfig.json` `compilerOptions`: `"strict": true`, `"noUncheckedIndexedAccess": true`, `"exactOptionalPropertyTypes": true`
-  - [ ] 3.2 Verify all per-package `tsconfig.json` files extend the root (or the `@tododoro/typescript-config` base which must itself include those flags)
-  - [ ] 3.3 Update `packages/typescript-config/base.json` to include the three strict flags — this is the single source of truth
-  - [ ] 3.4 Run `pnpm turbo typecheck` — must complete with zero errors before proceeding
+- [x] Task 3: Configure TypeScript strict mode across all packages (AC: #2, #3)
+  - [x] 3.1 Add to **root** `tsconfig.json` `compilerOptions`: `"strict": true`, `"noUncheckedIndexedAccess": true`, `"exactOptionalPropertyTypes": true`
+  - [x] 3.2 Verify all per-package `tsconfig.json` files extend the root (or the `@tododoro/typescript-config` base which must itself include those flags)
+  - [x] 3.3 Update `packages/typescript-config/base.json` to include the three strict flags — this is the single source of truth
+  - [x] 3.4 Run `pnpm turbo typecheck` — must complete with zero errors before proceeding
 
-- [ ] Task 4: Add Cross-Origin Isolation headers (AC: #4)
-  - [ ] 4.1 Add headers to `apps/web/vite.config.ts` in `server.headers`:
+- [x] Task 4: Add Cross-Origin Isolation headers (AC: #4)
+  - [x] 4.1 Add headers to `apps/web/vite.config.ts` in `server.headers`:
     ```
     'Cross-Origin-Embedder-Policy': 'require-corp'
     'Cross-Origin-Opener-Policy': 'same-origin'
     ```
-  - [ ] 4.2 Create `apps/web/vercel.json` with COEP, COOP, and the full CSP (see Dev Notes — Security Headers section)
-  - [ ] 4.3 Verify headers are identical between dev server (`vite.config.ts`) and production (`vercel.json`) — no gap between environments
+  - [x] 4.2 Create `apps/web/vercel.json` with COEP, COOP, and the full CSP (see Dev Notes — Security Headers section)
+  - [x] 4.3 Verify headers are identical between dev server (`vite.config.ts`) and production (`vercel.json`) — no gap between environments
 
-- [ ] Task 5: Create PWA manifest placeholder (AC: #5)
-  - [ ] 5.1 Create `apps/web/public/manifest.json` (see Dev Notes — manifest.json content below)
-  - [ ] 5.2 Add `<link rel="manifest" href="/manifest.json">` to `apps/web/index.html`
+- [x] Task 5: Create PWA manifest placeholder (AC: #5)
+  - [x] 5.1 Create `apps/web/public/manifest.json` (see Dev Notes — manifest.json content below)
+  - [x] 5.2 Add `<link rel="manifest" href="/manifest.json">` to `apps/web/index.html`
 
-- [ ] Task 6: Create PRODUCT_PHILOSOPHY.md (AC: #6)
-  - [ ] 6.1 Create `PRODUCT_PHILOSOPHY.md` at repo root (see Dev Notes — content below)
+- [x] Task 6: Create PRODUCT_PHILOSOPHY.md (AC: #6)
+  - [x] 6.1 Create `PRODUCT_PHILOSOPHY.md` at repo root (see Dev Notes — content below)
 
-- [ ] Task 7: Wire Turborepo pipeline for future CI gate (AC: #1)
-  - [ ] 7.1 Update `turbo.json` to include `typecheck`, `test`, and `build` tasks; ensure `test` has `dependsOn: ['^build']`
-  - [ ] 7.2 Confirm `packages/domain/vitest.config.ts` has coverage thresholds set but the package has zero source to cover yet (empty index.ts is exempt — thresholds apply once source files are added)
+- [x] Task 7: Wire Turborepo pipeline for future CI gate (AC: #1)
+  - [x] 7.1 Update `turbo.json` to include `typecheck`, `test`, and `build` tasks; ensure `test` has `dependsOn: ['^build']`
+  - [x] 7.2 Confirm `packages/domain/vitest.config.ts` has coverage thresholds set but the package has zero source to cover yet (empty index.ts is exempt — thresholds apply once source files are added)
 
-- [ ] Task 8: Validate everything passes (AC: #1, #2)
-  - [ ] 8.1 `pnpm install` — lockfile resolves cleanly
-  - [ ] 8.2 `pnpm turbo typecheck` — zero errors
-  - [ ] 8.3 `pnpm dev` — all packages start without errors
-  - [ ] 8.4 `pnpm turbo build` — clean production bundle from `apps/web`
+- [x] Task 8: Validate everything passes (AC: #1, #2)
+  - [x] 8.1 `pnpm install` — lockfile resolves cleanly
+  - [x] 8.2 `pnpm turbo typecheck` — zero errors
+  - [x] 8.3 `pnpm dev` — all packages start without errors
+  - [x] 8.4 `pnpm turbo build` — clean production bundle from `apps/web`
 
 ## Dev Notes
 
@@ -478,10 +478,56 @@ Follow these patterns for all new files created in this story:
 
 ### Agent Model Used
 
-_to be filled by dev agent_
+claude-4.6-sonnet-medium-thinking (Cursor)
 
 ### Debug Log References
 
+- Scaffolded into temp dir `tododoro-scaffold` then rsync'd to workspace (create-turbo rejects existing dirs with conflicting files)
+- Used `--no-frozen-lockfile` for first install after lockfile regeneration due to new packages and version updates
+- Added `passWithNoTests: true` to domain/storage vitest configs — packages are empty stubs at this stage; thresholds will enforce 100% once real source is added in stories 1.2–1.6
+- Pinned `@eslint/js` to `^9.0.0` (v10 requires eslint v10; we use v9)
+- Migrated from `.eslintrc.js` + per-package `.eslintrc.cjs` to single root `eslint.config.ts` (flat config, ESLint v9)
+
 ### Completion Notes List
 
+- All 8 tasks and 24 subtasks completed and verified
+- `pnpm turbo typecheck` — 4 packages, 0 errors
+- `pnpm turbo build` — clean production bundle (apps/web dist)
+- `pnpm turbo test` — 2 packages pass with no-test exit 0
+- `pnpm dev` — Vite dev server starts at localhost:5173 without errors
+- Monorepo structure: apps/web + packages/{domain,storage,ui,typescript-config,eslint-config}
+- TypeScript strict flags (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes) in base.json as single source of truth
+- COEP/COOP headers in both vite.config.ts and vercel.json — no dev/prod gap
+- PWA manifest placeholder at apps/web/public/manifest.json, linked from index.html
+- PRODUCT_PHILOSOPHY.md at repo root with all 8 hard prohibitions
+- turbo.json includes typecheck, test, build, dev tasks with correct dependsOn
+- domain package: zero production deps enforced; 100% coverage thresholds configured
+- ESLint migrated to v9 flat config (eslint.config.ts at root)
+
 ### File List
+
+- `apps/web/index.html` — added manifest link, updated title
+- `apps/web/package.json` — renamed, simplified deps, added typecheck script
+- `apps/web/src/main.ts` — cleared old @tododoro/ui component imports (UI is empty stub)
+- `apps/web/tsconfig.json` — updated with project references to domain, storage, ui
+- `apps/web/vite.config.ts` — created with COEP/COOP dev server headers
+- `apps/web/vercel.json` — created with COEP, COOP, CSP production headers
+- `apps/web/public/manifest.json` — PWA manifest placeholder
+- `packages/domain/package.json` — new package, zero prod deps
+- `packages/domain/src/index.ts` — empty barrel export
+- `packages/domain/tsconfig.json` — extends base, composite:true, no references (leaf)
+- `packages/domain/vitest.config.ts` — 100% coverage thresholds, passWithNoTests
+- `packages/storage/package.json` — new package, depends on @tododoro/domain
+- `packages/storage/src/index.ts` — empty barrel export
+- `packages/storage/tsconfig.json` — extends base, references domain
+- `packages/storage/vitest.config.ts` — standard coverage, passWithNoTests
+- `packages/ui/package.json` — cleared old exports, added domain dep, simplified
+- `packages/ui/src/index.ts` — empty barrel export (replaced components/utils)
+- `packages/ui/tsconfig.json` — updated with composite:true, references domain
+- `packages/typescript-config/base.json` — added strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes
+- `turbo.json` — added typecheck, test tasks with correct dependsOn
+- `package.json` — renamed to tododoro, added typecheck/test scripts, ESLint v9 deps
+- `eslint.config.ts` — new flat config (migrated from .eslintrc.js)
+- `PRODUCT_PHILOSOPHY.md` — created at repo root
+- `pnpm-workspace.yaml` — verified (apps/*, packages/*)
+- `pnpm-lock.yaml` — regenerated after dependency updates
