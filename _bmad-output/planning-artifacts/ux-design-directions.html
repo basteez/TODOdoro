@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tododoro — Design Directions</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0a0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10,10,15,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .nav-title { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); letter-spacing: 0.06em; text-transform: uppercase; }
+    .nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+    .nav-link {
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5);
+      background: transparent;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+    .nav-link:hover { color: rgba(255,255,255,0.9); border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.05); }
+
+    /* ── DIRECTION SECTIONS ── */
+    .direction {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      scroll-margin-top: 56px;
+    }
+
+    .direction-header {
+      padding: 40px 48px 28px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .direction-meta { max-width: 480px; }
+    .direction-number { font-size: 11px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.4; margin-bottom: 8px; }
+    .direction-name { font-size: 26px; font-weight: 600; margin-bottom: 10px; }
+    .direction-desc { font-size: 14px; line-height: 1.65; opacity: 0.65; }
+    .direction-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .tag {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.5);
+    }
+    .tag.rec { background: rgba(255,160,60,0.12); border-color: rgba(255,160,60,0.3); color: rgba(255,160,60,0.85); }
+
+    /* ── CANVAS MOCKUP ── */
+    .canvas-mockup {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      min-height: 520px;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      position: absolute;
+      border-radius: 10px;
+      padding: 18px 20px 14px;
+      width: 180px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      user-select: none;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .devotion-dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .card-action {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      opacity: 0.5;
+    }
+
+    /* Timer ring */
+    .timer-ring {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 26px;
+      height: 26px;
+    }
+    .timer-ring svg {
+      transform: rotate(-90deg);
+    }
+    .timer-ring circle {
+      fill: none;
+      stroke-width: 2.5;
+    }
+    .timer-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+    }
+
+    /* Active card pulse */
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(var(--session-color), 0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(var(--session-color), 0); }
+      100% { box-shadow: 0 0 0 0 rgba(var(--session-color), 0); }
+    }
+
+    /* Hint */
+    .canvas-hint {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      font-style: italic;
+      pointer-events: none;
+    }
+
+    /* Settings icon */
+    .settings-btn {
+      position: absolute;
+      bottom: 28px;
+      right: 32px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      opacity: 0.35;
+    }
+
+    /* Shelf button */
+    .shelf-btn {
+      position: absolute;
+      bottom: 28px;
+      left: 32px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.3;
+      cursor: pointer;
+    }
+
+    /* ═══════════════════════════════════════
+       DIRECTION 1 — MIDNIGHT CANVAS
+    ═══════════════════════════════════════ */
+    #d1 { background: hsl(220, 18%, 8%); }
+    #d1 .direction-header { background: hsl(220, 18%, 8%); color: hsl(220, 10%, 88%); }
+    #d1 .direction-number { color: hsl(38, 80%, 58%); opacity: 1; }
+
+    #d1 .card {
+      background: hsl(220, 14%, 13%);
+      border: 1px solid hsl(220, 12%, 20%);
+      color: hsl(220, 10%, 88%);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    #d1 .dot { background: hsl(38, 80%, 58%); }
+    #d1 .dot.dim { background: hsl(220, 12%, 22%); }
+    #d1 .card-action { color: hsl(38, 80%, 58%); opacity: 0.7; }
+
+    #d1 .card.active {
+      border-color: hsl(210, 60%, 55%);
+      box-shadow: 0 0 0 1px hsl(210, 60%, 55%), 0 8px 32px rgba(0,0,0,0.4);
+      --session-color: 90, 160, 220;
+    }
+    #d1 .card.active .timer-ring circle.bg { stroke: hsl(220, 14%, 20%); }
+    #d1 .card.active .timer-ring circle.fg { stroke: hsl(210, 60%, 65%); }
+    #d1 .card.active .timer-label { color: hsl(210, 60%, 75%); }
+
+    #d1 .canvas-hint { color: hsl(220, 10%, 55%); }
+    #d1 .settings-btn { background: hsl(220, 14%, 16%); color: hsl(220, 10%, 70%); }
+    #d1 .shelf-btn { color: hsl(220, 10%, 60%); }
+
+    /* ═══════════════════════════════════════
+       DIRECTION 2 — OBSIDIAN
+    ═══════════════════════════════════════ */
+    #d2 { background: hsl(0, 0%, 5%); }
+    #d2 .direction-header { background: hsl(0, 0%, 5%); color: hsl(0, 0%, 92%); }
+    #d2 .direction-number { color: hsl(195, 80%, 55%); opacity: 1; }
+
+    #d2 .card {
+      background: hsl(0, 0%, 9%);
+      border: 1px solid hsl(0, 0%, 16%);
+      color: hsl(0, 0%, 90%);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.5);
+    }
+    #d2 .dot { background: hsl(195, 80%, 55%); }
+    #d2 .dot.dim { background: hsl(0, 0%, 16%); }
+    #d2 .card-action { color: hsl(195, 80%, 55%); opacity: 0.7; }
+
+    #d2 .card.active {
+      border-color: hsl(195, 80%, 50%);
+      box-shadow: 0 0 0 1px hsl(195, 80%, 50%), 0 8px 32px rgba(0,0,0,0.5);
+    }
+    #d2 .card.active .timer-ring circle.bg { stroke: hsl(0, 0%, 15%); }
+    #d2 .card.active .timer-ring circle.fg { stroke: hsl(195, 80%, 55%); }
+    #d2 .card.active .timer-label { color: hsl(195, 80%, 70%); }
+
+    #d2 .canvas-hint { color: hsl(0, 0%, 35%); }
+    #d2 .settings-btn { background: hsl(0, 0%, 11%); color: hsl(0, 0%, 60%); }
+    #d2 .shelf-btn { color: hsl(0, 0%, 40%); }
+
+    /* ═══════════════════════════════════════
+       DIRECTION 3 — DUSK
+    ═══════════════════════════════════════ */
+    #d3 { background: hsl(255, 18%, 9%); }
+    #d3 .direction-header { background: hsl(255, 18%, 9%); color: hsl(40, 15%, 90%); }
+    #d3 .direction-number { color: hsl(30, 75%, 62%); opacity: 1; }
+
+    #d3 .card {
+      background: hsl(255, 14%, 14%);
+      border: 1px solid hsl(255, 12%, 22%);
+      color: hsl(40, 12%, 90%);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+    }
+    #d3 .dot { background: hsl(30, 75%, 62%); }
+    #d3 .dot.dim { background: hsl(255, 12%, 22%); }
+    #d3 .card-action { color: hsl(30, 75%, 62%); opacity: 0.7; }
+
+    #d3 .card.active {
+      border-color: hsl(300, 35%, 55%);
+      box-shadow: 0 0 0 1px hsl(300, 35%, 55%), 0 8px 32px rgba(0,0,0,0.4);
+    }
+    #d3 .card.active .timer-ring circle.bg { stroke: hsl(255, 14%, 22%); }
+    #d3 .card.active .timer-ring circle.fg { stroke: hsl(300, 45%, 65%); }
+    #d3 .card.active .timer-label { color: hsl(300, 45%, 75%); }
+
+    #d3 .canvas-hint { color: hsl(255, 10%, 50%); }
+    #d3 .settings-btn { background: hsl(255, 14%, 16%); color: hsl(40, 10%, 60%); }
+    #d3 .shelf-btn { color: hsl(40, 10%, 50%); }
+
+    /* ═══════════════════════════════════════
+       DIRECTION 4 — FOG LIGHT (light mode)
+    ═══════════════════════════════════════ */
+    #d4 { background: hsl(40, 20%, 96%); }
+    #d4 .direction-header { background: hsl(40, 20%, 96%); color: hsl(220, 20%, 20%); }
+    #d4 .direction-number { color: hsl(38, 80%, 42%); opacity: 1; }
+    #d4 .direction-desc { color: hsl(220, 15%, 40%); }
+    #d4 .tag { border-color: hsl(220, 15%, 80%); color: hsl(220, 15%, 45%); }
+
+    #d4 .card {
+      background: hsl(40, 20%, 100%);
+      border: 1px solid hsl(40, 12%, 88%);
+      color: hsl(220, 20%, 22%);
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+    }
+    #d4 .dot { background: hsl(38, 80%, 46%); }
+    #d4 .dot.dim { background: hsl(40, 12%, 86%); }
+    #d4 .card-action { color: hsl(38, 80%, 40%); opacity: 0.8; }
+
+    #d4 .card.active {
+      border-color: hsl(210, 60%, 55%);
+      box-shadow: 0 0 0 1px hsl(210, 60%, 55%), 0 4px 24px rgba(0,0,0,0.08);
+    }
+    #d4 .card.active .timer-ring circle.bg { stroke: hsl(40, 12%, 90%); }
+    #d4 .card.active .timer-ring circle.fg { stroke: hsl(210, 60%, 55%); }
+    #d4 .card.active .timer-label { color: hsl(210, 60%, 40%); }
+
+    #d4 .canvas-hint { color: hsl(220, 12%, 58%); }
+    #d4 .settings-btn { background: hsl(40, 12%, 90%); color: hsl(220, 15%, 50%); }
+    #d4 .shelf-btn { color: hsl(220, 15%, 50%); }
+
+    /* ═══════════════════════════════════════
+       DIRECTION 5 — MONOCHROME
+    ═══════════════════════════════════════ */
+    #d5 { background: hsl(220, 5%, 7%); }
+    #d5 .direction-header { background: hsl(220, 5%, 7%); color: hsl(220, 5%, 90%); }
+    #d5 .direction-number { color: hsl(220, 5%, 75%); opacity: 1; }
+
+    #d5 .card {
+      background: hsl(220, 5%, 11%);
+      border: 1px solid hsl(220, 5%, 17%);
+      color: hsl(220, 5%, 88%);
+      box-shadow: none;
+    }
+    #d5 .dot { background: hsl(220, 5%, 70%); }
+    #d5 .dot.dim { background: hsl(220, 5%, 18%); }
+    #d5 .dot.accent { background: hsl(38, 80%, 62%); }
+    #d5 .card-action { color: hsl(220, 5%, 55%); opacity: 1; }
+
+    #d5 .card.active {
+      border-color: hsl(220, 5%, 40%);
+      box-shadow: inset 0 0 0 1px hsl(220, 5%, 28%);
+    }
+    #d5 .card.active .timer-ring circle.bg { stroke: hsl(220, 5%, 18%); }
+    #d5 .card.active .timer-ring circle.fg { stroke: hsl(220, 5%, 75%); }
+    #d5 .card.active .timer-label { color: hsl(220, 5%, 80%); }
+
+    #d5 .canvas-hint { color: hsl(220, 5%, 38%); }
+    #d5 .settings-btn { background: transparent; border: 1px solid hsl(220, 5%, 18%); color: hsl(220, 5%, 55%); }
+    #d5 .shelf-btn { color: hsl(220, 5%, 45%); }
+
+    /* ═══════════════════════════════════════
+       DIRECTION 6 — DEPTH (elevated cards)
+    ═══════════════════════════════════════ */
+    #d6 { background: hsl(225, 22%, 6%); }
+    #d6 .direction-header { background: hsl(225, 22%, 6%); color: hsl(225, 10%, 90%); }
+    #d6 .direction-number { color: hsl(38, 80%, 58%); opacity: 1; }
+
+    #d6 .card {
+      background: linear-gradient(145deg, hsl(225, 18%, 15%), hsl(225, 16%, 12%));
+      border: 1px solid hsl(225, 16%, 22%);
+      color: hsl(225, 10%, 90%);
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.5),
+        0 4px 8px rgba(0,0,0,0.3),
+        0 12px 28px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      border-radius: 12px;
+    }
+    #d6 .dot { background: hsl(38, 80%, 58%); box-shadow: 0 0 4px rgba(255,160,60,0.4); }
+    #d6 .dot.dim { background: hsl(225, 16%, 22%); box-shadow: none; }
+    #d6 .card-action { color: hsl(38, 80%, 58%); opacity: 0.7; }
+
+    #d6 .card.active {
+      background: linear-gradient(145deg, hsl(225, 18%, 17%), hsl(225, 16%, 14%));
+      border-color: hsl(210, 55%, 50%);
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.5),
+        0 4px 8px rgba(0,0,0,0.3),
+        0 12px 32px rgba(0,0,0,0.3),
+        0 0 0 1px hsl(210, 55%, 45%),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    #d6 .card.active .timer-ring circle.bg { stroke: hsl(225, 16%, 22%); }
+    #d6 .card.active .timer-ring circle.fg { stroke: hsl(210, 60%, 65%); }
+    #d6 .card.active .timer-label { color: hsl(210, 60%, 75%); }
+
+    #d6 .canvas-hint { color: hsl(225, 10%, 45%); }
+    #d6 .settings-btn {
+      background: linear-gradient(145deg, hsl(225, 18%, 15%), hsl(225, 16%, 12%));
+      border: 1px solid hsl(225, 16%, 22%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      color: hsl(225, 10%, 65%);
+    }
+    #d6 .shelf-btn { color: hsl(225, 10%, 50%); }
+
+    /* ── SHARED CARD POSITIONS (set per direction via inline) ── */
+
+    /* ── DIVIDER ── */
+    .direction + .direction {
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* ── SCROLL TRANSITIONS ── */
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-title">tododoro / Design Directions</span>
+  <div class="nav-links">
+    <a class="nav-link" href="#d1">1 · Midnight Canvas</a>
+    <a class="nav-link" href="#d2">2 · Obsidian</a>
+    <a class="nav-link" href="#d3">3 · Dusk</a>
+    <a class="nav-link" href="#d4">4 · Fog Light</a>
+    <a class="nav-link" href="#d5">5 · Monochrome</a>
+    <a class="nav-link" href="#d6">6 · Depth</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DIRECTION 1 — MIDNIGHT CANVAS          -->
+<!-- ═══════════════════════════════════════ -->
+<section class="direction" id="d1">
+  <div class="direction-header">
+    <div class="direction-meta">
+      <div class="direction-number">Direction 01</div>
+      <div class="direction-name">Midnight Canvas</div>
+      <div class="direction-desc">
+        Deep navy-grey canvas, warm amber devotion indicators, calm blue session accent. The night sky
+        metaphor rendered as UI. Cards float with soft elevation; nothing competes with the canvas space.
+        Dark-first, considered default. The experience feels like late-night focused work in a quiet room.
+      </div>
+      <div class="direction-tags">
+        <span class="tag rec">Recommended</span>
+        <span class="tag">Dark primary</span>
+        <span class="tag">Warm amber</span>
+        <span class="tag">Soft elevation</span>
+        <span class="tag">Constellation metaphor</span>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-mockup">
+
+    <!-- Card: center (active, session running) -->
+    <div class="card active" style="left: calc(50% - 90px); top: calc(50% - 110px);">
+      <div style="position:relative;">
+        <div class="timer-ring">
+          <svg viewBox="0 0 26 26" width="26" height="26">
+            <circle class="bg" cx="13" cy="13" r="10" />
+            <circle class="fg" cx="13" cy="13" r="10" stroke-dasharray="62.8" stroke-dashoffset="18" />
+          </svg>
+          <div class="timer-label">18</div>
+        </div>
+      </div>
+      <div class="card-title">Chapter 4 — methodology</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action" style="color: hsl(210,60%,65%); opacity: 0.85; font-size: 9px;">● FOCUSING</div>
+      </div>
+    </div>
+
+    <!-- Card: upper left -->
+    <div class="card" style="left: calc(20% - 90px); top: calc(30% - 50px);">
+      <div class="card-title">Build the CLI tool</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+
+    <!-- Card: lower right -->
+    <div class="card" style="right: calc(15% - 90px); top: calc(60% - 50px);">
+      <div class="card-title">Read: Thinking Fast and Slow</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+
+    <!-- Card: upper right (faint, far edge) -->
+    <div class="card" style="right: calc(8% - 90px); top: calc(18% - 50px); opacity: 0.55;">
+      <div class="card-title">Redesign portfolio site</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+
+    <div class="canvas-hint">Start with what calls to you</div>
+    <div class="shelf-btn">SHELF</div>
+    <div class="settings-btn">⚙</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DIRECTION 2 — OBSIDIAN                 -->
+<!-- ═══════════════════════════════════════ -->
+<section class="direction" id="d2">
+  <div class="direction-header">
+    <div class="direction-meta">
+      <div class="direction-number">Direction 02</div>
+      <div class="direction-name">Obsidian</div>
+      <div class="direction-desc">
+        Near-pure black canvas with cool electric-blue session accents. More modern and minimal than
+        Midnight Canvas — maximum contrast, no colour warmth, sharper card edges. Feels closer to a
+        developer tool or a dark IDE. The coolness is intentional: focused, sharp, precise.
+      </div>
+      <div class="direction-tags">
+        <span class="tag">Dark primary</span>
+        <span class="tag">Cool accent</span>
+        <span class="tag">High contrast</span>
+        <span class="tag">Sharper edges</span>
+        <span class="tag">Modern / technical</span>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-mockup">
+    <div class="card active" style="left: calc(50% - 90px); top: calc(50% - 110px);">
+      <div style="position:relative;">
+        <div class="timer-ring">
+          <svg viewBox="0 0 26 26" width="26" height="26">
+            <circle class="bg" cx="13" cy="13" r="10" />
+            <circle class="fg" cx="13" cy="13" r="10" stroke-dasharray="62.8" stroke-dashoffset="18" />
+          </svg>
+          <div class="timer-label">18</div>
+        </div>
+      </div>
+      <div class="card-title">Chapter 4 — methodology</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action" style="color: hsl(195,80%,55%); opacity: 0.9; font-size: 9px;">● FOCUSING</div>
+      </div>
+    </div>
+    <div class="card" style="left: calc(20% - 90px); top: calc(30% - 50px);">
+      <div class="card-title">Build the CLI tool</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(15% - 90px); top: calc(60% - 50px);">
+      <div class="card-title">Read: Thinking Fast and Slow</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(8% - 90px); top: calc(18% - 50px); opacity: 0.45;">
+      <div class="card-title">Redesign portfolio site</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="canvas-hint">Start with what calls to you</div>
+    <div class="shelf-btn">SHELF</div>
+    <div class="settings-btn">⚙</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DIRECTION 3 — DUSK                     -->
+<!-- ═══════════════════════════════════════ -->
+<section class="direction" id="d3">
+  <div class="direction-header">
+    <div class="direction-meta">
+      <div class="direction-number">Direction 03</div>
+      <div class="direction-name">Dusk</div>
+      <div class="direction-desc">
+        Deep indigo-purple canvas, warm orange devotion accents, muted purple session active state.
+        The richest and most atmospheric of the dark directions. Feels like dusk or the last hour
+        before night — transitional, introspective, warm but fading. More expressive than Midnight Canvas;
+        slightly more emotionally saturated.
+      </div>
+      <div class="direction-tags">
+        <span class="tag">Dark primary</span>
+        <span class="tag">Indigo canvas</span>
+        <span class="tag">Warm orange + purple</span>
+        <span class="tag">Atmospheric</span>
+        <span class="tag">Expressive</span>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-mockup">
+    <div class="card active" style="left: calc(50% - 90px); top: calc(50% - 110px);">
+      <div style="position:relative;">
+        <div class="timer-ring">
+          <svg viewBox="0 0 26 26" width="26" height="26">
+            <circle class="bg" cx="13" cy="13" r="10" />
+            <circle class="fg" cx="13" cy="13" r="10" stroke-dasharray="62.8" stroke-dashoffset="18" />
+          </svg>
+          <div class="timer-label">18</div>
+        </div>
+      </div>
+      <div class="card-title">Chapter 4 — methodology</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action" style="color: hsl(300,45%,65%); opacity: 0.9; font-size: 9px;">● FOCUSING</div>
+      </div>
+    </div>
+    <div class="card" style="left: calc(20% - 90px); top: calc(30% - 50px);">
+      <div class="card-title">Build the CLI tool</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(15% - 90px); top: calc(60% - 50px);">
+      <div class="card-title">Read: Thinking Fast and Slow</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(8% - 90px); top: calc(18% - 50px); opacity: 0.45;">
+      <div class="card-title">Redesign portfolio site</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="canvas-hint">Start with what calls to you</div>
+    <div class="shelf-btn">SHELF</div>
+    <div class="settings-btn">⚙</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DIRECTION 4 — FOG LIGHT (light mode)   -->
+<!-- ═══════════════════════════════════════ -->
+<section class="direction" id="d4">
+  <div class="direction-header">
+    <div class="direction-meta">
+      <div class="direction-number">Direction 04</div>
+      <div class="direction-name">Fog Light</div>
+      <div class="direction-desc">
+        Warm off-white canvas, near-white elevated cards, amber devotion accents unchanged. The light mode
+        companion to Midnight Canvas — same emotional character, inverted luminosity. Feels like a morning
+        session, a lit desk, parchment and ink. Cards cast subtle shadows. Session accent is calm blue against the cream.
+      </div>
+      <div class="direction-tags">
+        <span class="tag">Light mode</span>
+        <span class="tag">Warm cream</span>
+        <span class="tag">Amber devotion</span>
+        <span class="tag">Soft shadows</span>
+        <span class="tag">Morning session feel</span>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-mockup">
+    <div class="card active" style="left: calc(50% - 90px); top: calc(50% - 110px);">
+      <div style="position:relative;">
+        <div class="timer-ring">
+          <svg viewBox="0 0 26 26" width="26" height="26">
+            <circle class="bg" cx="13" cy="13" r="10" />
+            <circle class="fg" cx="13" cy="13" r="10" stroke-dasharray="62.8" stroke-dashoffset="18" />
+          </svg>
+          <div class="timer-label">18</div>
+        </div>
+      </div>
+      <div class="card-title">Chapter 4 — methodology</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action" style="color: hsl(210,60%,45%); opacity: 0.9; font-size: 9px;">● FOCUSING</div>
+      </div>
+    </div>
+    <div class="card" style="left: calc(20% - 90px); top: calc(30% - 50px);">
+      <div class="card-title">Build the CLI tool</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(15% - 90px); top: calc(60% - 50px);">
+      <div class="card-title">Read: Thinking Fast and Slow</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(8% - 90px); top: calc(18% - 50px); opacity: 0.45;">
+      <div class="card-title">Redesign portfolio site</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="canvas-hint">Start with what calls to you</div>
+    <div class="shelf-btn">SHELF</div>
+    <div class="settings-btn">⚙</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DIRECTION 5 — MONOCHROME               -->
+<!-- ═══════════════════════════════════════ -->
+<section class="direction" id="d5">
+  <div class="direction-header">
+    <div class="direction-meta">
+      <div class="direction-number">Direction 05</div>
+      <div class="direction-name">Monochrome</div>
+      <div class="direction-desc">
+        Near-black canvas, grey card surfaces, flat borderless card design. A single amber dot marks
+        the most-invested todo — everything else is greyscale. Maximum restraint; the devotion amber
+        is the only colour in the entire UI. Radical in its understatement. The amber dot becomes
+        precious because it is the only thing allowed to have warmth.
+      </div>
+      <div class="direction-tags">
+        <span class="tag">Dark primary</span>
+        <span class="tag">Greyscale</span>
+        <span class="tag">Single amber accent</span>
+        <span class="tag">Maximum restraint</span>
+        <span class="tag">Radical minimalism</span>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-mockup">
+    <div class="card active" style="left: calc(50% - 90px); top: calc(50% - 110px);">
+      <div style="position:relative;">
+        <div class="timer-ring">
+          <svg viewBox="0 0 26 26" width="26" height="26">
+            <circle class="bg" cx="13" cy="13" r="10" />
+            <circle class="fg" cx="13" cy="13" r="10" stroke-dasharray="62.8" stroke-dashoffset="18" />
+          </svg>
+          <div class="timer-label">18</div>
+        </div>
+      </div>
+      <div class="card-title">Chapter 4 — methodology</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot accent"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action" style="font-size: 9px;">● ACTIVE</div>
+      </div>
+    </div>
+    <div class="card" style="left: calc(20% - 90px); top: calc(30% - 50px);">
+      <div class="card-title">Build the CLI tool</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(15% - 90px); top: calc(60% - 50px);">
+      <div class="card-title">Read: Thinking Fast and Slow</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(8% - 90px); top: calc(18% - 50px); opacity: 0.4;">
+      <div class="card-title">Redesign portfolio site</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="canvas-hint">Start with what calls to you</div>
+    <div class="shelf-btn">SHELF</div>
+    <div class="settings-btn">⚙</div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- DIRECTION 6 — DEPTH                    -->
+<!-- ═══════════════════════════════════════ -->
+<section class="direction" id="d6">
+  <div class="direction-header">
+    <div class="direction-meta">
+      <div class="direction-number">Direction 06</div>
+      <div class="direction-name">Depth</div>
+      <div class="direction-desc">
+        Deep navy canvas with cards that have strong physical elevation — layered shadows, inner highlights,
+        gradient surfaces. Cards feel like objects you can pick up. The amber devotion dots glow faintly.
+        More tactile than Midnight Canvas; heavier visual weight per card. Suits users who want the
+        canvas to feel like a physical desk surface.
+      </div>
+      <div class="direction-tags">
+        <span class="tag">Dark primary</span>
+        <span class="tag">Strong elevation</span>
+        <span class="tag">Tactile / physical</span>
+        <span class="tag">Glowing amber</span>
+        <span class="tag">Higher visual weight</span>
+      </div>
+    </div>
+  </div>
+  <div class="canvas-mockup">
+    <div class="card active" style="left: calc(50% - 90px); top: calc(50% - 110px);">
+      <div style="position:relative;">
+        <div class="timer-ring">
+          <svg viewBox="0 0 26 26" width="26" height="26">
+            <circle class="bg" cx="13" cy="13" r="10" />
+            <circle class="fg" cx="13" cy="13" r="10" stroke-dasharray="62.8" stroke-dashoffset="18" />
+          </svg>
+          <div class="timer-label">18</div>
+        </div>
+      </div>
+      <div class="card-title">Chapter 4 — methodology</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action" style="color: hsl(210,60%,65%); opacity: 0.9; font-size: 9px;">● FOCUSING</div>
+      </div>
+    </div>
+    <div class="card" style="left: calc(20% - 90px); top: calc(30% - 50px);">
+      <div class="card-title">Build the CLI tool</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(15% - 90px); top: calc(60% - 50px);">
+      <div class="card-title">Read: Thinking Fast and Slow</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="card" style="right: calc(8% - 90px); top: calc(18% - 50px); opacity: 0.45;">
+      <div class="card-title">Redesign portfolio site</div>
+      <div class="card-footer">
+        <div class="devotion-dots">
+          <div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="card-action">START</div>
+      </div>
+    </div>
+    <div class="canvas-hint">Start with what calls to you</div>
+    <div class="shelf-btn">SHELF</div>
+    <div class="settings-btn">⚙</div>
+  </div>
+</section>
+
+</body>
+</html>
