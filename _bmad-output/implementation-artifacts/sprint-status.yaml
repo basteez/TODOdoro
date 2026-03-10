@@ -1,0 +1,108 @@
+# generated: 2026-03-10
+# project: tododoro
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-03-10
+project: tododoro
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: Project Foundation & Domain Core
+  epic-1: backlog
+  1-1-scaffold-monorepo-configure-tooling: backlog
+  1-2-define-domain-event-types-and-port-interfaces: backlog
+  1-3-implement-todo-aggregate-with-full-test-coverage: backlog
+  1-4-implement-session-aggregate-with-full-test-coverage: backlog
+  1-5-implement-read-model-projections-with-full-test-coverage: backlog
+  1-6-implement-repair-pipeline-with-full-test-coverage: backlog
+  1-7-wire-ci-pipeline-snapshot-design-and-prototype-storage: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: The Constellation Canvas
+  epic-2: backlog
+  2-1-app-shell-design-tokens-and-canvas-scaffold: backlog
+  2-2-zero-onboarding-canvas-hint: backlog
+  2-3-create-and-title-a-todo-card: backlog
+  2-4-rename-a-todo-card: backlog
+  2-5-drag-cards-to-declare-priority: backlog
+  2-6-pan-and-zoom-the-canvas: backlog
+  2-7-keyboard-navigation-for-canvas-controls: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: The Pomodoro Session Loop
+  epic-3: backlog
+  3-1-start-a-linked-pomodoro-session-from-a-card: backlog
+  3-2-analog-wipe-timer-display: backlog
+  3-3-session-completion-and-first-devotion-dot: backlog
+  3-4-session-abandonment-below-60-second-threshold: backlog
+  3-5-durable-session-resume-within-window: backlog
+  3-6-durable-session-auto-complete-beyond-window: backlog
+  3-7-start-an-unlinked-exploration-session: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: The Devotion Record
+  epic-4: backlog
+  4-1-devotiondots-compact-presence-on-the-card: backlog
+  4-2-full-devotion-record-timeline-popover: backlog
+  4-3-devotion-record-preserved-across-title-renames: backlog
+  4-4-completion-moment-on-todo-seal: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Todo Lifecycle & The Shelf
+  epic-5: backlog
+  5-1-seal-a-todo: backlog
+  5-2-release-ritual-two-state-letting-go: backlog
+  5-3-release-eulogy-for-high-investment-todos: backlog
+  5-4-the-shelf-personal-archive: backlog
+  5-5-shelf-empty-state: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: Production Storage & Data Durability
+  epic-6: backlog
+  6-1-sqlite-event-store-with-drizzle-schema: backlog
+  6-2-atomic-event-writes-and-boot-sequence-wiring: backlog
+  6-3-tolerant-boot-from-corrupted-or-incomplete-event-log: backlog
+  6-4-schema-migration-and-event-versioning: backlog
+  6-5-snapshot-based-replay-for-large-event-logs: backlog
+  6-6-production-security-headers-and-csp: backlog
+  epic-6-retrospective: optional
+
+  # Epic 7: Settings & Personalisation
+  epic-7: backlog
+  7-1-configurable-timer-durations: backlog
+  7-2-light-dark-and-system-theme-switching: backlog
+  7-3-honour-os-reduced-motion-preference: backlog
+  epic-7-retrospective: optional
