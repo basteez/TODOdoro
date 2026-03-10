@@ -1,6 +1,6 @@
 # Story 1.1: Scaffold Monorepo & Configure Tooling
 
-Status: review
+Status: done
 
 ## Story
 
@@ -506,11 +506,13 @@ claude-4.6-sonnet-medium-thinking (Cursor)
 
 ### File List
 
-- `apps/web/index.html` — added manifest link, updated title
-- `apps/web/package.json` — renamed, simplified deps, added typecheck script
-- `apps/web/src/main.ts` — cleared old @tododoro/ui component imports (UI is empty stub)
-- `apps/web/tsconfig.json` — updated with project references to domain, storage, ui
-- `apps/web/vite.config.ts` — created with COEP/COOP dev server headers
+- `apps/web/index.html` — added manifest link, updated title, updated script src to main.tsx
+- `apps/web/package.json` — renamed to @tododoro/web, added react/react-dom deps, @vitejs/plugin-react, @types/react, @types/react-dom, vite ^7.0.0, added @tododoro/domain and @tododoro/storage workspace deps
+- `apps/web/src/main.tsx` — React 19 entry point (replaces main.ts)
+- `apps/web/src/style.css` — base styles (from template)
+- `apps/web/src/vite-env.d.ts` — Vite client type reference (from template)
+- `apps/web/tsconfig.json` — updated with project references to domain, storage, ui; added jsx:react-jsx; removed conflicting noEmit:true
+- `apps/web/vite.config.ts` — COEP/COOP dev server headers + @vitejs/plugin-react plugin
 - `apps/web/vercel.json` — created with COEP, COOP, CSP production headers
 - `apps/web/public/manifest.json` — PWA manifest placeholder
 - `packages/domain/package.json` — new package, zero prod deps
