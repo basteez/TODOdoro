@@ -2,11 +2,13 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    passWithNoTests: true,
+    environment: 'jsdom',
+    exclude: ['dist/**', 'node_modules/**'],
+    passWithNoTests: false,
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: ['src/index.ts'],
+      exclude: ['src/index.ts', 'src/**/*.test.ts'],
     },
   },
 });

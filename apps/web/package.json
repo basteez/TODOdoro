@@ -14,7 +14,8 @@
     "@tododoro/storage": "workspace:*",
     "@tododoro/ui": "workspace:*",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tododoro/typescript-config": "workspace:*",

@@ -48,7 +48,7 @@ development_status:
   1-4-implement-session-aggregate-with-full-test-coverage: done
   1-5-implement-read-model-projections-with-full-test-coverage: done
   1-6-implement-repair-pipeline-with-full-test-coverage: done
-  1-7-wire-ci-pipeline-snapshot-design-and-prototype-storage: ready-for-dev
+  1-7-wire-ci-pipeline-snapshot-design-and-prototype-storage: done
   epic-1-retrospective: optional
 
   # Epic 2: The Constellation Canvas

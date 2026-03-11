@@ -5,6 +5,7 @@ import {
 } from './activeSession.js';
 import type { ActiveSessionReadModel } from './activeSession.js';
 import { CURRENT_SCHEMA_VERSION } from '../events.js';
+import { DUMMY_SNAPSHOT_STATE } from '../testUtils.js';
 import type {
   SessionStartedEvent,
   SessionCompletedEvent,
@@ -78,7 +79,7 @@ function makeSnapshotCreated(): SnapshotCreatedEvent {
     aggregateId: 'system',
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: BASE_TIMESTAMP + 6000,
-    snapshotState: {},
+    snapshotState: DUMMY_SNAPSHOT_STATE,
   };
 }
 

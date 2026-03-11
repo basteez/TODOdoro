@@ -5,6 +5,7 @@ import {
 } from './shelf.js';
 import type { ShelfReadModel } from './shelf.js';
 import { CURRENT_SCHEMA_VERSION } from '../events.js';
+import { DUMMY_SNAPSHOT_STATE } from '../testUtils.js';
 import type {
   TodoDeclaredEvent,
   TodoRenamedEvent,
@@ -126,7 +127,7 @@ function makeSnapshotCreated(): SnapshotCreatedEvent {
     aggregateId: 'system',
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: BASE_TIMESTAMP + 6000,
-    snapshotState: {},
+    snapshotState: DUMMY_SNAPSHOT_STATE,
   };
 }
 

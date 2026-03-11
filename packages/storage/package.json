@@ -6,6 +6,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@tododoro/typescript-config": "workspace:*",
     "@vitest/coverage-v8": "latest",
+    "jsdom": "^28.1.0",
     "typescript": "latest",
     "vitest": "latest"
   }
