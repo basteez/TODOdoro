@@ -45,7 +45,11 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      inputRef.current.focus();
+      // React Flow wraps nodes in containers that can delay DOM readiness;
+      // requestAnimationFrame ensures focus fires after the node is painted.
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
     }
   }, [isEditing]);
 
