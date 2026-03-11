@@ -17,7 +17,8 @@ import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
 import { SystemClock } from './adapters/SystemClock.js';
 import { CryptoIdGenerator } from './adapters/CryptoIdGenerator.js';
-import './style.css';
+import { App } from './App.js';
+import './index.css';
 
 async function bootstrap() {
   const eventStore = new JsonEventStore();
@@ -61,17 +62,14 @@ bootstrap()
   .then(() => {
     createRoot(rootElement).render(
       <StrictMode>
-        <div>
-          <h1>tododoro</h1>
-        </div>
+        <App />
       </StrictMode>,
     );
   })
-  .catch((error: unknown) => {
-    console.error('Bootstrap failed:', error);
+  .catch((_error: unknown) => {
     createRoot(rootElement).render(
       <StrictMode>
-        <div>
+        <div className="p-8 text-text-primary">
           <h1>tododoro</h1>
           <p>Something went wrong during startup. Try clearing your browser data and reloading.</p>
         </div>

@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --color-canvas-bg: var(--canvas-bg);
+  --color-surface: var(--surface);
+  --color-surface-border: var(--surface-border);
+  --color-devotion: var(--devotion);
+  --color-session-active: var(--session-active);
+  --color-text-primary: var(--text-primary);
+  --color-text-muted: var(--text-muted);
+  --color-sealed: var(--sealed);
+  --color-released: var(--released);
+}
+
+:root {
+  /* Midnight Canvas (dark) — default */
+  --canvas-bg: hsl(220, 18%, 8%);
+  --surface: hsl(220, 14%, 13%);
+  --surface-border: hsl(220, 12%, 20%);
+  --devotion: hsl(38, 80%, 58%);
+  --session-active: hsl(210, 60%, 65%);
+  --text-primary: hsl(220, 10%, 88%);
+  --text-muted: hsl(220, 8%, 50%);
+  --sealed: hsl(155, 35%, 52%);
+  --released: hsl(270, 20%, 55%);
+
+  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+[data-theme="light"] {
+  --canvas-bg: hsl(40, 20%, 96%);
+  --surface: hsl(40, 15%, 98%);
+  --surface-border: hsl(40, 10%, 85%);
+  --devotion: hsl(38, 80%, 58%);
+  --session-active: hsl(210, 60%, 55%);
+  --text-primary: hsl(220, 15%, 18%);
+  --text-muted: hsl(220, 8%, 45%);
+  --sealed: hsl(155, 35%, 42%);
+  --released: hsl(270, 20%, 45%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--canvas-bg);
+  color: var(--text-primary);
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
