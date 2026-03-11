@@ -1,15 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TodoCard } from '@tododoro/ui';
-
-type TodoCardData = {
-  title: string;
-  todoId: string;
-  sessionsCount: number;
-  isEditing: boolean;
-  onConfirm: (title: string) => void;
-  onCancel: () => void;
-};
+import type { TodoCardData } from '@tododoro/ui';
 
 function renderTodoCard(data: Partial<TodoCardData> = {}) {
   const defaultData: TodoCardData = {
@@ -21,7 +13,23 @@ function renderTodoCard(data: Partial<TodoCardData> = {}) {
     onCancel: vi.fn(),
     ...data,
   };
-  return render(<TodoCard data={defaultData} />);
+  // TodoCard uses NodeProps which requires additional React Flow fields;
+  // cast through unknown since only `data` is used by the component logic.
+  const props = {
+    id: 'test-node',
+    type: 'todoCard',
+    data: defaultData,
+    dragging: false,
+    zIndex: 0,
+    selectable: true,
+    deletable: true,
+    selected: false,
+    draggable: true,
+    isConnectable: true,
+    positionAbsoluteX: 0,
+    positionAbsoluteY: 0,
+  } as unknown as React.ComponentProps<typeof TodoCard>;
+  return render(<TodoCard {...props} />);
 }
 
 describe('TodoCard', () => {
