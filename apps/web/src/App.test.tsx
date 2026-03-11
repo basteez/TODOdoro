@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { App } from './App.js';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import {
@@ -34,5 +34,34 @@ describe('App', () => {
     const { container } = render(<App />);
 
     expect(container.querySelector('.react-flow')).not.toBeNull();
+  });
+
+  it('shows CanvasHint when canvas is empty after boot', () => {
+    useCanvasStore.getState().bootstrap(
+      INITIAL_TODO_LIST_STATE,
+      INITIAL_SHELF_STATE,
+      INITIAL_DEVOTION_RECORD_STATE,
+    );
+
+    render(<App />);
+
+    expect(screen.getByText('Start with what calls to you')).not.toBeNull();
+  });
+
+  it('does not show CanvasHint when todos exist', () => {
+    const todosWithItem = {
+      items: [{ id: '1', title: 'Test', position: { x: 0, y: 0 }, pomodoroCount: 0, status: 'active' as const }],
+      pendingSessions: new Map(),
+    };
+
+    useCanvasStore.getState().bootstrap(
+      todosWithItem,
+      INITIAL_SHELF_STATE,
+      INITIAL_DEVOTION_RECORD_STATE,
+    );
+
+    render(<App />);
+
+    expect(screen.queryByText('Start with what calls to you')).toBeNull();
   });
 });
