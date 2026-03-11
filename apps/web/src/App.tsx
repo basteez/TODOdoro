@@ -1,6 +1,6 @@
 import { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
-import { ConstellationCanvas } from '@tododoro/ui';
+import { CanvasHint, ConstellationCanvas } from '@tododoro/ui';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 
 interface ErrorBoundaryProps {
@@ -40,12 +40,18 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 function Canvas() {
   const isBooting = useCanvasStore((s) => s.isBooting);
+  const isEmpty = useCanvasStore((s) => s.todos.items.length === 0);
 
   if (isBooting) {
     return null;
   }
 
-  return <ConstellationCanvas />;
+  return (
+    <div className="relative w-full h-full">
+      <ConstellationCanvas />
+      <CanvasHint isEmpty={isEmpty} />
+    </div>
+  );
 }
 
 export function App() {
