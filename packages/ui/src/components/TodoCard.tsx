@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Node, NodeProps } from '@xyflow/react';
 
 export type TodoCardData = {
@@ -43,15 +43,19 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
 
+  // React Flow's NodeWrapper manages focus on its own wrapper div, reclaiming
+  // it after rAF. Use setTimeout to focus after React Flow's handlers settle.
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      // React Flow wraps nodes in containers that can delay DOM readiness;
-      // requestAnimationFrame ensures focus fires after the node is painted.
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
+    if (isEditing) {
+      const id = setTimeout(() => inputRef.current?.focus(), 0);
+      return () => clearTimeout(id);
     }
   }, [isEditing]);
+
+  // Prevent React Flow's NodeWrapper from stealing focus back on click inside the card
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Escape') {
@@ -81,7 +85,7 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
 
   if (isEditing) {
     return (
-      <div style={cardStyle}>
+      <div style={cardStyle} onMouseDown={handleMouseDown}>
         <input
           ref={inputRef}
           type="text"
