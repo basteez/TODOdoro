@@ -15,7 +15,7 @@ import {
   autoCloseOrphanedSessions,
   repairEvents,
 } from './repair.js';
-import { FakeClock, FakeIdGenerator } from './testUtils.js';
+import { FakeClock, FakeIdGenerator, DUMMY_SNAPSHOT_STATE } from './testUtils.js';
 
 // --- Test helpers ---
 
@@ -203,7 +203,7 @@ describe('skipUnknownEventTypes', () => {
         aggregateId: 'system',
         schemaVersion: 1,
         timestamp: 1_000_000,
-        snapshotState: {},
+        snapshotState: DUMMY_SNAPSHOT_STATE,
       },
     ];
     const result = skipUnknownEventTypes(knownEvents);

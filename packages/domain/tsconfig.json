@@ -1,7 +1,7 @@
 {
   "extends": "@tododoro/typescript-config/base.json",
   "include": ["src"],
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/testUtils.ts"],
   "compilerOptions": {
     "composite": true,
     "outDir": "./dist",

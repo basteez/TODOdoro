@@ -1,4 +1,4 @@
-export { CURRENT_SCHEMA_VERSION } from './events.js';
+export { CURRENT_SCHEMA_VERSION, SNAPSHOT_THRESHOLD } from './events.js';
 
 export type {
   DomainEvent,
@@ -11,6 +11,7 @@ export type {
   SessionCompletedEvent,
   SessionAbandonedEvent,
   SnapshotCreatedEvent,
+  SnapshotState,
 } from './events.js';
 
 export type {

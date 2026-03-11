@@ -5,7 +5,21 @@
 //   schemaVersion: number — for future migration support
 //   timestamp: number — milliseconds since epoch (Unix ms)
 
+import type { TodoListReadModel } from './projections/todoList.js';
+import type { ShelfReadModel } from './projections/shelf.js';
+import type { DevotionRecordReadModel } from './projections/devotionRecord.js';
+import type { ActiveSessionReadModel } from './projections/activeSession.js';
+
 export const CURRENT_SCHEMA_VERSION = 1 as const;
+
+export const SNAPSHOT_THRESHOLD = 500 as const;
+
+export interface SnapshotState {
+  readonly todoList: TodoListReadModel;
+  readonly shelf: ShelfReadModel;
+  readonly devotionRecord: DevotionRecordReadModel;
+  readonly activeSession: ActiveSessionReadModel;
+}
 
 export interface TodoDeclaredEvent {
   readonly eventType: 'TodoDeclared';
@@ -86,7 +100,7 @@ export interface SnapshotCreatedEvent {
   readonly aggregateId: string; // 'system'
   readonly schemaVersion: number;
   readonly timestamp: number;
-  readonly snapshotState: unknown; // Typed in Story 1.7 once read models are defined (Stories 1.3–1.5)
+  readonly snapshotState: SnapshotState;
 }
 
 export type DomainEvent =

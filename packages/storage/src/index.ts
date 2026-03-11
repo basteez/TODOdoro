@@ -1,1 +1,1 @@
-export {};
+export { JsonEventStore } from './JsonEventStore.js';
