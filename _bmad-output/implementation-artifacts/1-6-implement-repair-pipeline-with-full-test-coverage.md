@@ -1,6 +1,6 @@
 # Story 1.6: Implement Repair Pipeline with Full Test Coverage
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -30,51 +30,51 @@ So that the app always boots coherently regardless of what is in the event log.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement `deduplicateByEventId` (AC: #2)
-  - [ ] 1.1 Pure function: `deduplicateByEventId(events: ReadonlyArray<DomainEvent>): ReadonlyArray<DomainEvent>`
-  - [ ] 1.2 Iterate in order; use a `Set<string>` of seen `eventId` values; keep first occurrence, drop subsequent duplicates
-  - [ ] 1.3 Test: single event → unchanged; two distinct events → unchanged; exact duplicate → second dropped; two events with same eventId but different content → first kept
+- [x] Task 1: Implement `deduplicateByEventId` (AC: #2)
+  - [x] 1.1 Pure function: `deduplicateByEventId(events: ReadonlyArray<DomainEvent>): ReadonlyArray<DomainEvent>`
+  - [x] 1.2 Iterate in order; use a `Set<string>` of seen `eventId` values; keep first occurrence, drop subsequent duplicates
+  - [x] 1.3 Test: single event → unchanged; two distinct events → unchanged; exact duplicate → second dropped; two events with same eventId but different content → first kept
 
-- [ ] Task 2: Implement `upcastEvents` (AC: #3)
-  - [ ] 2.1 Pure function: `upcastEvents(events: ReadonlyArray<DomainEvent>): ReadonlyArray<DomainEvent>`
-  - [ ] 2.2 At `schemaVersion = 1` (current), no upcasting is needed — return events unchanged
-  - [ ] 2.3 The function's structure must be extensible: future versions add `case 1: return upcastFrom1To2(event)` etc.
-  - [ ] 2.4 Test: events at `CURRENT_SCHEMA_VERSION` pass through unchanged; events with lower `schemaVersion` (simulate with a raw object) pass through unchanged at v1 (future migration point)
+- [x] Task 2: Implement `upcastEvents` (AC: #3)
+  - [x] 2.1 Pure function: `upcastEvents(events: ReadonlyArray<DomainEvent>): ReadonlyArray<DomainEvent>`
+  - [x] 2.2 At `schemaVersion = 1` (current), no upcasting is needed — return events unchanged
+  - [x] 2.3 The function's structure must be extensible: future versions add `case 1: return upcastFrom1To2(event)` etc.
+  - [x] 2.4 Test: events at `CURRENT_SCHEMA_VERSION` pass through unchanged; events with lower `schemaVersion` (simulate with a raw object) pass through unchanged at v1 (future migration point)
 
-- [ ] Task 3: Implement `skipUnknownEventTypes` (AC: #4)
-  - [ ] 3.1 Pure function: `skipUnknownEventTypes(events: ReadonlyArray<DomainEvent | UnknownEvent>): ReadonlyArray<DomainEvent>`
-  - [ ] 3.2 Define `UnknownEvent` as a catch-all type: `{ eventType: string; [key: string]: unknown }`
-  - [ ] 3.3 Use a Set or switch to enumerate all known `eventType` strings from the `DomainEvent` union discriminant
-  - [ ] 3.4 Test: all 9 known event types pass through; an object with `eventType: 'SomeFutureEvent'` is silently dropped; mixed array keeps only known events
+- [x] Task 3: Implement `skipUnknownEventTypes` (AC: #4)
+  - [x] 3.1 Pure function: `skipUnknownEventTypes(events: ReadonlyArray<DomainEvent | UnknownEvent>): ReadonlyArray<DomainEvent>`
+  - [x] 3.2 Define `UnknownEvent` as a catch-all type: `{ eventType: string; [key: string]: unknown }`
+  - [x] 3.3 Use a Set or switch to enumerate all known `eventType` strings from the `DomainEvent` union discriminant
+  - [x] 3.4 Test: all 9 known event types pass through; an object with `eventType: 'SomeFutureEvent'` is silently dropped; mixed array keeps only known events
 
-- [ ] Task 4: Implement `autoCloseOrphanedSessions` (AC: #5)
-  - [ ] 4.1 Signature: `autoCloseOrphanedSessions(events: ReadonlyArray<DomainEvent>, clock: Clock, idGenerator: IdGenerator): ReadonlyArray<DomainEvent>`
-  - [ ] 4.2 Scan events to find all `SessionStartedEvent`s; for each, check if a matching `SessionCompletedEvent` or `SessionAbandonedEvent` exists (same `aggregateId`)
-  - [ ] 4.3 For each orphaned session (no completion/abandonment found):
+- [x] Task 4: Implement `autoCloseOrphanedSessions` (AC: #5)
+  - [x] 4.1 Signature: `autoCloseOrphanedSessions(events: ReadonlyArray<DomainEvent>, clock: Clock, idGenerator: IdGenerator): ReadonlyArray<DomainEvent>`
+  - [x] 4.2 Scan events to find all `SessionStartedEvent`s; for each, check if a matching `SessionCompletedEvent` or `SessionAbandonedEvent` exists (same `aggregateId`)
+  - [x] 4.3 For each orphaned session (no completion/abandonment found):
     - If `clock.now() - event.timestamp >= event.configuredDurationMs`: synthesize a `SessionCompletedEvent` with `elapsedMs = event.configuredDurationMs` (cap at configured duration) and append it to the events array
     - If `clock.now() - event.timestamp < event.configuredDurationMs`: leave the session open (return events unchanged for this session)
-  - [ ] 4.4 Test: orphaned session past window → `SessionCompletedEvent` synthesized and appended; orphaned session within window → no change; completed session (has matching completed) → no change; abandoned session (has matching abandoned) → no change
+  - [x] 4.4 Test: orphaned session past window → `SessionCompletedEvent` synthesized and appended; orphaned session within window → no change; completed session (has matching completed) → no change; abandoned session (has matching abandoned) → no change
 
-- [ ] Task 5: Implement `repairEvents` composer (AC: #1)
-  - [ ] 5.1 Signature: `repairEvents(events: ReadonlyArray<DomainEvent | UnknownEvent>, clock: Clock, idGenerator: IdGenerator): ReadonlyArray<DomainEvent>`
-  - [ ] 5.2 Compose in this exact order: `skipUnknownEventTypes` → `deduplicateByEventId` → `upcastEvents` → `autoCloseOrphanedSessions`
-  - [ ] 5.3 Test: end-to-end scenario with all 4 steps exercised in one pass
+- [x] Task 5: Implement `repairEvents` composer (AC: #1)
+  - [x] 5.1 Signature: `repairEvents(events: ReadonlyArray<DomainEvent | UnknownEvent>, clock: Clock, idGenerator: IdGenerator): ReadonlyArray<DomainEvent>`
+  - [x] 5.2 Compose in this exact order: `skipUnknownEventTypes` → `deduplicateByEventId` → `upcastEvents` → `autoCloseOrphanedSessions`
+  - [x] 5.3 Test: end-to-end scenario with all 4 steps exercised in one pass
 
-- [ ] Task 6: Create `repair.test.ts` covering all 6 documented corruption scenarios (AC: #6, #7)
-  - [ ] 6.1 Scenario 1 — Duplicate events: two `TodoDeclaredEvent` with same `eventId` → only one in output
-  - [ ] 6.2 Scenario 2 — Unknown event types: `{ eventType: 'LegacyTodoItemAdded', ... }` in log → silently removed
-  - [ ] 6.3 Scenario 3 — Orphaned session within window: `SessionStartedEvent` with `timestamp = now - 10_000` and `configuredDurationMs = 1_500_000` → no synthesized event; session remains open
-  - [ ] 6.4 Scenario 4 — Orphaned session past window: `SessionStartedEvent` with `timestamp = now - 2_000_000` and `configuredDurationMs = 1_500_000` → `SessionCompletedEvent` synthesized with `elapsedMs = 1_500_000`
-  - [ ] 6.5 Scenario 5 — Truncated log: log ends abruptly after `SessionStartedEvent` (no completion) and `clock.now()` is past window → treated same as Scenario 4
-  - [ ] 6.6 Scenario 6 — Mismatched schemaVersion: events with `schemaVersion = 0` pass through `upcastEvents` unchanged at v1 (no-op upcasting); verifies extensibility structure is in place
+- [x] Task 6: Create `repair.test.ts` covering all 6 documented corruption scenarios (AC: #6, #7)
+  - [x] 6.1 Scenario 1 — Duplicate events: two `TodoDeclaredEvent` with same `eventId` → only one in output
+  - [x] 6.2 Scenario 2 — Unknown event types: `{ eventType: 'LegacyTodoItemAdded', ... }` in log → silently removed
+  - [x] 6.3 Scenario 3 — Orphaned session within window: `SessionStartedEvent` with `timestamp = now - 10_000` and `configuredDurationMs = 1_500_000` → no synthesized event; session remains open
+  - [x] 6.4 Scenario 4 — Orphaned session past window: `SessionStartedEvent` with `timestamp = now - 2_000_000` and `configuredDurationMs = 1_500_000` → `SessionCompletedEvent` synthesized with `elapsedMs = 1_500_000`
+  - [x] 6.5 Scenario 5 — Truncated log: log ends abruptly after `SessionStartedEvent` (no completion) and `clock.now()` is past window → treated same as Scenario 4
+  - [x] 6.6 Scenario 6 — Mismatched schemaVersion: events with `schemaVersion = 0` pass through `upcastEvents` unchanged at v1 (no-op upcasting); verifies extensibility structure is in place
 
-- [ ] Task 7: Extract shared test utilities to `testUtils.ts` (optional refactor, recommended)
-  - [ ] 7.1 Create `packages/domain/src/testUtils.ts` (or `packages/domain/src/test/testUtils.ts`) with `FakeClock` and `FakeIdGenerator`
-  - [ ] 7.2 Update `todo.test.ts`, `session.test.ts`, and `repair.test.ts` to import from the shared file
-  - [ ] 7.3 Ensure `testUtils.ts` is excluded from the coverage report (add to `vitest.config.ts` exclude list)
+- [x] Task 7: Extract shared test utilities to `testUtils.ts` (optional refactor, recommended)
+  - [x] 7.1 Create `packages/domain/src/testUtils.ts` (or `packages/domain/src/test/testUtils.ts`) with `FakeClock` and `FakeIdGenerator`
+  - [x] 7.2 Update `todo.test.ts`, `session.test.ts`, and `repair.test.ts` to import from the shared file
+  - [x] 7.3 Ensure `testUtils.ts` is excluded from the coverage report (add to `vitest.config.ts` exclude list)
 
-- [ ] Task 8: Update `packages/domain/src/index.ts`
-  - [ ] 8.1 Export `repairEvents` and `UnknownEvent` type from `./repair.js`
+- [x] Task 8: Update `packages/domain/src/index.ts`
+  - [x] 8.1 Export `repairEvents` and `UnknownEvent` type from `./repair.js`
 
 ## Dev Notes
 
@@ -366,8 +366,34 @@ Exporting the individual functions allows testing them in isolation from `apps/w
 
 ### Agent Model Used
 
+Claude Opus 4.6
+
 ### Debug Log References
+
+No issues encountered. All tests passed on first run with 100% coverage.
 
 ### Completion Notes List
 
+- Implemented all 5 repair pipeline functions as pure functions in `repair.ts`: `deduplicateByEventId`, `upcastEvents`, `skipUnknownEventTypes`, `autoCloseOrphanedSessions`, `repairEvents`
+- Defined `UnknownEvent` interface for forward compatibility with future event types
+- Pipeline composition order: skipUnknown → deduplicate → upcast → autoClose (as specified in Dev Notes)
+- Created 28 tests in `repair.test.ts` covering all 6 documented corruption scenarios plus unit tests per function (26 original + 2 added during code review)
+- Extracted `FakeClock` and `FakeIdGenerator` to shared `testUtils.ts`, updated `todo.test.ts`, `session.test.ts`, and `repair.test.ts` to import from shared file
+- Added `testUtils.ts` to vitest coverage exclusion list
+- Exported `repairEvents`, individual functions, and `UnknownEvent` type from `index.ts`
+- All 145 tests pass (28 new + 117 existing), 100% coverage maintained
+
 ### File List
+
+- `packages/domain/src/repair.ts` — CREATED (repair pipeline functions + UnknownEvent type)
+- `packages/domain/src/repair.test.ts` — CREATED (28 tests: unit tests + 6 corruption scenarios + 2 review fixes)
+- `packages/domain/src/testUtils.ts` — CREATED (shared FakeClock + FakeIdGenerator)
+- `packages/domain/src/index.ts` — MODIFIED (added repair pipeline exports)
+- `packages/domain/src/todo.test.ts` — MODIFIED (import FakeClock/FakeIdGenerator from testUtils)
+- `packages/domain/src/session.test.ts` — MODIFIED (import FakeClock/FakeIdGenerator from testUtils)
+- `packages/domain/vitest.config.ts` — MODIFIED (added testUtils.ts to coverage exclusion)
+
+## Change Log
+
+- 2026-03-11: Implemented repair pipeline with full test coverage (Story 1.6). Created `repair.ts` with 5 pure functions composing the event repair pipeline. All 6 documented corruption scenarios tested. Extracted shared test utilities to `testUtils.ts`. 100% code coverage maintained.
+- 2026-03-11: Code review fixes — Made Scenario 5 (truncated log) a distinct multi-event test, added multi-session test for `autoCloseOrphanedSessions`, added upcast step exercise to `repairEvents` E2E test. Tests: 26 → 28, all passing with 100% coverage.
