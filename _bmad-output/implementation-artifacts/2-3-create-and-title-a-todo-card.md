@@ -1,6 +1,6 @@
 # Story 2.3: Create and Title a Todo Card
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -30,38 +30,38 @@ So that I can place an intention on the canvas with near-zero friction.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `TodoCard` React Flow custom node (AC: #1, #2)
-  - [ ] Create `packages/ui/src/components/TodoCard.tsx`
-  - [ ] Implement as a React Flow custom node using `NodeProps`
-  - [ ] Card anatomy: editable title (Inter Medium 15px), card action trigger area (placeholder for future stories)
-  - [ ] Card styling: `--surface` background, 1px `--surface-border` border, 20–28px internal padding, min ~160×72px
-  - [ ] States: Idle, Editing (title field focused with cursor)
-  - [ ] Title input: uncontrolled input or `contentEditable` with `--text-primary` colour
-  - [ ] On Enter or blur: call `onConfirm(title)` callback with trimmed title
-  - [ ] On Escape: call `onCancel()` callback
-  - [ ] Empty title on confirm → treat as cancel (do not create card)
-  - [ ] Register as custom node type in React Flow: `nodeTypes={{ todoCard: TodoCard }}`
-  - [ ] Export from `packages/ui/src/index.ts`
-- [ ] Task 2: Create `handleDeclareTodo` command handler (AC: #2)
-  - [ ] Create `apps/web/src/commands/todoCommands.ts`
-  - [ ] Implement `handleDeclareTodo(title: string, position: {x: number, y: number}, eventStore: EventStore, clock: Clock, idGenerator: IdGenerator): Promise<Result>`
-  - [ ] Pattern: read events → reduce state → call `declareTodo()` decision fn → append `TodoDeclaredEvent` → call `positionTodo()` → append `TodoPositionedEvent` → call `useCanvasStore.getState().applyEvent()` for EACH event
-  - [ ] Return `{ ok: true }` or `{ ok: false, error: string }`
-  - [ ] Never throw — errors as values
-- [ ] Task 3: Wire double-click canvas → create card flow (AC: #1, #2, #3)
-  - [ ] In `ConstellationCanvas`, handle `onPaneClick` or `onDoubleClick` on the React Flow pane
-  - [ ] Convert screen coordinates to flow coordinates using `reactFlowInstance.screenToFlowPosition()`
-  - [ ] Create a temporary "editing" node at the click position (local state, not yet persisted)
-  - [ ] On confirm: call `handleDeclareTodo` → card persists in store → React Flow re-renders with new node
-  - [ ] On cancel (Escape or empty title): remove temporary node from local state
-- [ ] Task 4: Enforce 100-card cap (AC: #4)
-  - [ ] Before creating a temporary editing node, check `useCanvasStore(s => s.todos).length >= 100`
-  - [ ] If at cap: show brief inline message (small text near click position or toast-like) then dismiss after 2s
-  - [ ] The `declareTodo()` domain decision function should also enforce this — belt and suspenders
-- [ ] Task 5: Map TodoListReadModel to React Flow nodes (AC: #1, #2)
-  - [ ] In `App.tsx` or `ConstellationCanvas`: derive `Node[]` from `useCanvasStore(s => s.todos)`
-  - [ ] Each todo maps to: `{ id: todoId, type: 'todoCard', position: { x, y }, data: { title, ... } }`
-  - [ ] Pass derived nodes to React Flow `<ReactFlow nodes={nodes} ...>`
+- [x] Task 1: Create `TodoCard` React Flow custom node (AC: #1, #2)
+  - [x] Create `packages/ui/src/components/TodoCard.tsx`
+  - [x] Implement as a React Flow custom node using `NodeProps`
+  - [x] Card anatomy: editable title (Inter Medium 15px), card action trigger area (placeholder for future stories)
+  - [x] Card styling: `--surface` background, 1px `--surface-border` border, 20–28px internal padding, min ~160×72px
+  - [x] States: Idle, Editing (title field focused with cursor)
+  - [x] Title input: uncontrolled input or `contentEditable` with `--text-primary` colour
+  - [x] On Enter or blur: call `onConfirm(title)` callback with trimmed title
+  - [x] On Escape: call `onCancel()` callback
+  - [x] Empty title on confirm → treat as cancel (do not create card)
+  - [x] Register as custom node type in React Flow: `nodeTypes={{ todoCard: TodoCard }}`
+  - [x] Export from `packages/ui/src/index.ts`
+- [x] Task 2: Create `handleDeclareTodo` command handler (AC: #2)
+  - [x] Create `apps/web/src/commands/todoCommands.ts`
+  - [x] Implement `handleDeclareTodo(title: string, position: {x: number, y: number}, eventStore: EventStore, clock: Clock, idGenerator: IdGenerator): Promise<Result>`
+  - [x] Pattern: read events → reduce state → call `declareTodo()` decision fn → append `TodoDeclaredEvent` → call `positionTodo()` → append `TodoPositionedEvent` → call `useCanvasStore.getState().applyEvent()` for EACH event
+  - [x] Return `{ ok: true }` or `{ ok: false, error: string }`
+  - [x] Never throw — errors as values
+- [x] Task 3: Wire double-click canvas → create card flow (AC: #1, #2, #3)
+  - [x] In `ConstellationCanvas`, handle `onPaneClick` or `onDoubleClick` on the React Flow pane
+  - [x] Convert screen coordinates to flow coordinates using `reactFlowInstance.screenToFlowPosition()`
+  - [x] Create a temporary "editing" node at the click position (local state, not yet persisted)
+  - [x] On confirm: call `handleDeclareTodo` → card persists in store → React Flow re-renders with new node
+  - [x] On cancel (Escape or empty title): remove temporary node from local state
+- [x] Task 4: Enforce 100-card cap (AC: #4)
+  - [x] Before creating a temporary editing node, check `useCanvasStore(s => s.todos).length >= 100`
+  - [x] If at cap: show brief inline message (small text near click position or toast-like) then dismiss after 2s
+  - [x] The `declareTodo()` domain decision function should also enforce this — belt and suspenders
+- [x] Task 5: Map TodoListReadModel to React Flow nodes (AC: #1, #2)
+  - [x] In `App.tsx` or `ConstellationCanvas`: derive `Node[]` from `useCanvasStore(s => s.todos)`
+  - [x] Each todo maps to: `{ id: todoId, type: 'todoCard', position: { x, y }, data: { title, ... } }`
+  - [x] Pass derived nodes to React Flow `<ReactFlow nodes={nodes} ...>`
 
 ## Dev Notes
 
@@ -149,9 +149,33 @@ Modify `ConstellationCanvas.tsx` to:
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+- Fixed TypeScript `exactOptionalPropertyTypes` issue with React Flow's `nodeTypes` prop by conditional spreading
+- Fixed `TodoCardData` type constraint — React Flow requires `Record<string, unknown>` for node data; added index signature
+- Added `@xyflow/react` as direct dependency to `apps/web` for `useReactFlow` and `ReactFlowProvider` access
+- Moved TodoCard tests from `packages/ui` (no test setup) to `apps/web` where Vitest + Testing Library are configured
 
 ### Completion Notes List
+- **Task 1:** Created `TodoCard` component with idle/editing states, Inter Medium 15px title, `--surface` background, `--surface-border` border, 20-28px padding, min 160x72px. Handles Enter (confirm), Escape (cancel), blur (confirm if non-empty, cancel if empty), empty title treated as cancel. 9 unit tests.
+- **Task 2:** Created `handleDeclareTodo` command handler following the command pattern: reads active count from store → calls `declareTodo()` domain fn → reduces state → calls `positionTodo()` → appends both events to store → updates canvas store via `applyEvent()`. Returns Result union, never throws. 6 unit tests.
+- **Task 3:** Wired double-click on canvas pane → temporary editing node at click position → on confirm calls `handleDeclareTodo` → on cancel removes temp node. `ConstellationCanvas` now accepts `nodes`, `nodeTypes`, and `onDoubleClick` props. `App.tsx` wraps canvas in `ReactFlowProvider` and uses `useReactFlow().screenToFlowPosition()` for coordinate conversion.
+- **Task 4:** 100-card cap enforced at UI level (early return in double-click handler before creating editing node) and domain level (belt-and-suspenders via `declareTodo()` function which was already implemented in Epic 1).
+- **Task 5:** Todos from `useCanvasStore` mapped to React Flow `Node<TodoCardData>[]` via `useMemo`, with `nodeTypes` also memoized per React Flow requirements.
 
 ### File List
+- `packages/ui/src/components/TodoCard.tsx` — NEW: React Flow custom node component (uses NodeProps)
+- `packages/ui/src/components/ConstellationCanvas.tsx` — MODIFIED: accepts nodes, nodeTypes, onDoubleClick props
+- `packages/ui/src/index.ts` — MODIFIED: exports TodoCard, TodoCardData, and TodoCardNode
+- `apps/web/src/commands/todoCommands.ts` — NEW: handleDeclareTodo command handler
+- `apps/web/src/App.tsx` — MODIFIED: node mapping, ReactFlowProvider, double-click creation flow, 100-card cap with inline message
+- `apps/web/src/components/TodoCard.test.tsx` — NEW: 9 unit tests for TodoCard
+- `apps/web/src/components/ConstellationCanvas.test.tsx` — NEW: 3 integration tests for node rendering
+- `apps/web/src/commands/todoCommands.test.ts` — NEW: 6 unit tests for handleDeclareTodo
+- `apps/web/package.json` — MODIFIED: added @xyflow/react dependency
+- `pnpm-lock.yaml` — MODIFIED: updated lockfile for new dependency
+
+## Change Log
+- 2026-03-11: Implemented Story 2.3 — Create and Title a Todo Card. Added TodoCard component, handleDeclareTodo command handler, double-click canvas creation flow, 100-card cap enforcement, and store-to-node mapping. 18 new tests added, 191 total tests passing.
+- 2026-03-11: Code review fixes — (H1) Added inline "canvas full" message on 100-card cap with 2s auto-dismiss. (H2) handleDeclareTodo result now awaited and errors logged. (M1) TodoCard uses React Flow NodeProps<TodoCardNode> typing. (M2) Double-click handler filters clicks on existing nodes. (M3) Added pnpm-lock.yaml to File List.
