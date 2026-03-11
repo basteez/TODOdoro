@@ -161,8 +161,8 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
   }
 
   return (
-    <div style={cardStyle} className={dragging ? 'scale-[1.02] shadow-lg' : ''}>
-      <span onDoubleClick={handleTitleDoubleClick}>{title}</span>
+    <div style={cardStyle} className={dragging ? 'scale-[1.02] shadow-lg' : ''} onDoubleClick={handleTitleDoubleClick}>
+      <span>{title}</span>
     </div>
   );
 }

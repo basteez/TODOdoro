@@ -136,8 +136,13 @@ describe('TodoCard', () => {
   describe('rename mode (double-click)', () => {
     it('enters rename mode on double-click of title', () => {
       renderTodoCard({ title: 'My todo' });
-      const title = screen.getByText('My todo');
-      fireEvent.dblClick(title);
+      fireEvent.dblClick(screen.getByText('My todo'));
+      expect(screen.getByRole('textbox')).toBeTruthy();
+    });
+
+    it('enters rename mode on double-click of card wrapper (not just title text)', () => {
+      const { container } = renderTodoCard({ title: 'My todo' });
+      fireEvent.dblClick(container.firstElementChild as HTMLElement);
       expect(screen.getByRole('textbox')).toBeTruthy();
     });
 
