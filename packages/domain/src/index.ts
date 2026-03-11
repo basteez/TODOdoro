@@ -29,3 +29,12 @@ export {
   sealTodo,
   releaseTodo,
 } from './todo.js';
+
+export type { SessionState } from './session.js';
+export {
+  reduceSession,
+  startSession,
+  completeSession,
+  abandonSession,
+  INITIAL_SESSION_STATE,
+} from './session.js';
