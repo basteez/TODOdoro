@@ -11,30 +11,7 @@ import {
 import type { TodoState } from './todo.js';
 import type { SessionStartedEvent } from './events.js';
 import { CURRENT_SCHEMA_VERSION } from './events.js';
-
-// ---------------------------------------------------------------------------
-// Test utilities
-// ---------------------------------------------------------------------------
-
-class FakeClock {
-  private _now: number;
-  constructor(now = 1_000_000) {
-    this._now = now;
-  }
-  now(): number {
-    return this._now;
-  }
-  advance(ms: number): void {
-    this._now += ms;
-  }
-}
-
-class FakeIdGenerator {
-  private _counter = 0;
-  generate(): string {
-    return `test-id-${++this._counter}`;
-  }
-}
+import { FakeClock, FakeIdGenerator } from './testUtils.js';
 
 // ---------------------------------------------------------------------------
 // Shared fixture helpers

@@ -39,6 +39,16 @@ export {
   INITIAL_SESSION_STATE,
 } from './session.js';
 
+// Repair pipeline
+export type { UnknownEvent } from './repair.js';
+export {
+  repairEvents,
+  deduplicateByEventId,
+  upcastEvents,
+  skipUnknownEventTypes,
+  autoCloseOrphanedSessions,
+} from './repair.js';
+
 // Projections
 export type { TodoListItem, TodoListReadModel, TodoListView } from './projections/todoList.js';
 export { INITIAL_TODO_LIST_STATE, projectTodoList } from './projections/todoList.js';
