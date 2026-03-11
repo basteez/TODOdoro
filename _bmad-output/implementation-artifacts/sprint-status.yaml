@@ -57,7 +57,7 @@ development_status:
   2-2-zero-onboarding-canvas-hint: done
   2-3-create-and-title-a-todo-card: done
   2-4-rename-a-todo-card: done
-  2-5-drag-cards-to-declare-priority: ready-for-dev
+  2-5-drag-cards-to-declare-priority: done
   2-6-pan-and-zoom-the-canvas: ready-for-dev
   2-7-keyboard-navigation-for-canvas-controls: ready-for-dev
   epic-2-retrospective: optional

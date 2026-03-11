@@ -46,6 +46,32 @@ export async function handleDeclareTodo(
   }
 }
 
+export async function handlePositionTodo(
+  todoId: string,
+  position: { x: number; y: number },
+  eventStore: EventStore,
+  clock: Clock,
+  idGenerator: IdGenerator,
+): Promise<Result> {
+  try {
+    const events = await eventStore.readByAggregate(todoId);
+    const state = events.reduce(reduceTodo, INITIAL_TODO_STATE);
+
+    const event = positionTodo(state, position.x, position.y, clock, idGenerator);
+    if (event instanceof Error) {
+      return { ok: false, error: event.message };
+    }
+
+    await eventStore.append(event);
+    useCanvasStore.getState().applyEvent(event);
+
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { ok: false, error: message };
+  }
+}
+
 export async function handleRenameTodo(
   todoId: string,
   newTitle: string,

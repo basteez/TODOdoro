@@ -1,12 +1,12 @@
-import { Component, useMemo, useState, useCallback, useEffect } from 'react';
-import type { ReactNode, ErrorInfo } from 'react';
+import { Component, useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
 import { CanvasHint, ConstellationCanvas, TodoCard } from '@tododoro/ui';
 import type { TodoCardData } from '@tododoro/ui';
-import type { Node, NodeTypes } from '@xyflow/react';
-import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
+import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
+import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
 import { JsonEventStore } from '@tododoro/storage';
 import { useCanvasStore } from './stores/useCanvasStore.js';
-import { handleDeclareTodo, handleRenameTodo } from './commands/todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo, handlePositionTodo } from './commands/todoCommands.js';
 import { SystemClock } from './adapters/SystemClock.js';
 import { CryptoIdGenerator } from './adapters/CryptoIdGenerator.js';
 
@@ -59,6 +59,7 @@ function CanvasInner() {
 
   const [editingNode, setEditingNode] = useState<Node<TodoCardData> | null>(null);
   const [capMessage, setCapMessage] = useState<{ x: number; y: number } | null>(null);
+  const dragDebounceRef = useRef<{ timeout: ReturnType<typeof setTimeout>; nodeId: string } | null>(null);
 
   const nodeTypes: NodeTypes = useMemo(() => ({ todoCard: TodoCard }), []);
 
@@ -94,9 +95,34 @@ function CanvasInner() {
     [todos.items],
   );
 
-  const nodes: Node<TodoCardData>[] = editingNode
-    ? [...todoNodes, editingNode]
-    : todoNodes;
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<TodoCardData>>(todoNodes);
+
+  useEffect(() => {
+    setFlowNodes(editingNode ? [...todoNodes, editingNode] : todoNodes);
+  }, [todoNodes, editingNode, setFlowNodes]);
+
+  const handleNodeDragStart = useCallback((_event: ReactMouseEvent, node: Node) => {
+    if (dragDebounceRef.current !== null && dragDebounceRef.current.nodeId === node.id) {
+      clearTimeout(dragDebounceRef.current.timeout);
+      dragDebounceRef.current = null;
+    }
+  }, []);
+
+  const handleNodeDragStop = useCallback((_event: ReactMouseEvent, node: Node) => {
+    if (dragDebounceRef.current !== null) {
+      clearTimeout(dragDebounceRef.current.timeout);
+    }
+    dragDebounceRef.current = {
+      timeout: setTimeout(async () => {
+        dragDebounceRef.current = null;
+        const result = await handlePositionTodo(node.id, node.position, eventStore, clock, idGenerator);
+        if (!result.ok) {
+          console.error('Failed to position todo:', result.error);
+        }
+      }, 200),
+      nodeId: node.id,
+    };
+  }, []);
 
   const handleDoubleClick = useCallback(
     (event: React.MouseEvent) => {
@@ -154,9 +180,12 @@ function CanvasInner() {
   return (
     <div className="relative w-full h-full">
       <ConstellationCanvas
-        nodes={nodes}
+        nodes={flowNodes}
         nodeTypes={nodeTypes}
         onDoubleClick={handleDoubleClick}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDragStop={handleNodeDragStop}
+        onNodesChange={onNodesChange as OnNodesChange}
       />
       <CanvasHint isEmpty={isEmpty && editingNode === null} />
       {capMessage && (

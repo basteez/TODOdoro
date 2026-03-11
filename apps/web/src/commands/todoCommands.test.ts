@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handleDeclareTodo, handleRenameTodo } from './todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo, handlePositionTodo } from './todoCommands.js';
 import type { DomainEvent } from '@tododoro/domain';
 import { useCanvasStore } from '../stores/useCanvasStore.js';
 import {
@@ -217,6 +217,82 @@ describe('handleRenameTodo', () => {
     };
     await expect(
       handleRenameTodo(todoId, 'New title', failingStore, clock, idGenerator),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe('handlePositionTodo', () => {
+  let eventStore: EventStore;
+  let clock: Clock;
+  let idGenerator: IdGenerator;
+
+  const todoId = 'todo-xyz';
+  const declaredEvent: DomainEvent = {
+    eventType: 'TodoDeclared',
+    eventId: 'ev-1',
+    aggregateId: todoId,
+    schemaVersion: 1,
+    timestamp: 500,
+    title: 'My todo',
+  };
+
+  beforeEach(() => {
+    resetStore();
+    clock = createMockClock();
+    idGenerator = createMockIdGenerator();
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+    };
+    useCanvasStore.getState().applyEvent(declaredEvent);
+  });
+
+  it('returns ok: true on success', async () => {
+    const result = await handlePositionTodo(todoId, { x: 50, y: 75 }, eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('appends a TodoPositionedEvent to event store', async () => {
+    await handlePositionTodo(todoId, { x: 50, y: 75 }, eventStore, clock, idGenerator);
+
+    expect(eventStore.append).toHaveBeenCalledTimes(1);
+    const call = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(call.eventType).toBe('TodoPositioned');
+    expect(call.aggregateId).toBe(todoId);
+    expect(call.x).toBe(50);
+    expect(call.y).toBe(75);
+  });
+
+  it('updates the canvas store position via applyEvent', async () => {
+    await handlePositionTodo(todoId, { x: 300, y: 400 }, eventStore, clock, idGenerator);
+
+    const state = useCanvasStore.getState();
+    const todo = state.todos.items.find((t) => t.id === todoId);
+    expect(todo?.position).toEqual({ x: 300, y: 400 });
+  });
+
+  it('returns ok: false when todo does not exist (no events)', async () => {
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() => Promise.resolve([])),
+    };
+    const result = await handlePositionTodo('nonexistent', { x: 0, y: 0 }, eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(eventStore.append).not.toHaveBeenCalled();
+  });
+
+  it('never throws — returns error as value', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+    await expect(
+      handlePositionTodo(todoId, { x: 0, y: 0 }, failingStore, clock, idGenerator),
     ).resolves.toBeDefined();
   });
 });
