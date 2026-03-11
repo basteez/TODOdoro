@@ -1,0 +1,13 @@
+node_modules/
+.git/
+.github/
+_bmad/
+_bmad-output/
+*.md
+.turbo/
+apps/web/dist/
+packages/*/dist/
+**/*.tsbuildinfo
+.vscode/
+.claude/
+.env*
