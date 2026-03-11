@@ -49,13 +49,13 @@ importers:
         version: 5.0.11(@types/react@19.2.14)(react@19.2.4)
     devDependencies:
       '@tailwindcss/vite':
-        specifier: latest
+        specifier: ^4.2.1
         version: 4.2.1(vite@7.3.1)
       '@testing-library/jest-dom':
-        specifier: latest
+        specifier: ^6.9.1
         version: 6.9.1
       '@testing-library/react':
-        specifier: latest
+        specifier: ^16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@tododoro/typescript-config':
         specifier: workspace:*
@@ -70,13 +70,13 @@ importers:
         specifier: latest
         version: 5.1.4(vite@7.3.1)
       '@vitest/coverage-v8':
-        specifier: latest
+        specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18)
       jsdom:
-        specifier: latest
+        specifier: ^28.1.0
         version: 28.1.0
       tailwindcss:
-        specifier: latest
+        specifier: ^4.2.1
         version: 4.2.1
       typescript:
         specifier: latest
@@ -85,7 +85,7 @@ importers:
         specifier: ^7.0.0
         version: 7.3.1
       vitest:
-        specifier: latest
+        specifier: ^4.0.18
         version: 4.0.18(jsdom@28.1.0)
 
   packages/domain:
@@ -142,28 +142,28 @@ importers:
   packages/ui:
     dependencies:
       '@radix-ui/react-context-menu':
-        specifier: latest
+        specifier: ^2.2.16
         version: 2.2.16(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@radix-ui/react-dialog':
-        specifier: latest
+        specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@radix-ui/react-popover':
-        specifier: latest
+        specifier: ^1.1.15
         version: 1.1.15(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@radix-ui/react-slider':
-        specifier: latest
+        specifier: ^1.3.6
         version: 1.3.6(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@radix-ui/react-switch':
-        specifier: latest
+        specifier: ^1.2.6
         version: 1.2.6(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@radix-ui/react-tooltip':
-        specifier: latest
+        specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3)(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       '@tododoro/domain':
         specifier: workspace:*
         version: link:../domain
       '@xyflow/react':
-        specifier: latest
+        specifier: ^12.10.1
         version: 12.10.1(@types/react@19.2.14)(react-dom@19.2.4)(react@19.2.4)
       react:
         specifier: ^19.0.0
