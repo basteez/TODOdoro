@@ -11,6 +11,7 @@ function renderTodoCard(data: Partial<TodoCardData> = {}) {
     isEditing: false,
     onConfirm: vi.fn(),
     onCancel: vi.fn(),
+    onRename: vi.fn(),
     ...data,
   };
   // TodoCard uses NodeProps which requires additional React Flow fields;
@@ -113,6 +114,105 @@ describe('TodoCard', () => {
       const input = screen.getByRole('textbox');
       fireEvent.blur(input);
       expect(onCancel).toHaveBeenCalled();
+    });
+  });
+
+  describe('rename mode (double-click)', () => {
+    it('enters rename mode on double-click of title', () => {
+      renderTodoCard({ title: 'My todo' });
+      const title = screen.getByText('My todo');
+      fireEvent.dblClick(title);
+      expect(screen.getByRole('textbox')).toBeTruthy();
+    });
+
+    it('pre-fills input with the current title', () => {
+      renderTodoCard({ title: 'Original title' });
+      fireEvent.dblClick(screen.getByText('Original title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      expect(input.value).toBe('Original title');
+    });
+
+    it('calls onRename with new title on Enter when changed and non-empty', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Old title', onRename });
+      fireEvent.dblClick(screen.getByText('Old title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'New title' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onRename).toHaveBeenCalledTimes(1);
+      expect(onRename).toHaveBeenCalledWith('New title');
+    });
+
+    it('does not call onRename on Enter when title is whitespace-only', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Old title', onRename });
+      fireEvent.dblClick(screen.getByText('Old title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: '   ' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
+
+    it('does not call onRename and exits rename mode on Enter when title is empty', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Old title', onRename });
+      fireEvent.dblClick(screen.getByText('Old title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
+
+    it('does not call onRename and exits rename mode on Enter when title is unchanged', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Same title', onRename });
+      fireEvent.dblClick(screen.getByText('Same title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
+
+    it('cancels rename on Escape without calling onRename', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Old title', onRename });
+      fireEvent.dblClick(screen.getByText('Old title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'Changed' } });
+      fireEvent.keyDown(input, { key: 'Escape' });
+      expect(onRename).not.toHaveBeenCalled();
+      expect(screen.queryByRole('textbox')).toBeNull();
+    });
+
+    it('calls onRename on blur when title changed and non-empty', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Old title', onRename });
+      fireEvent.dblClick(screen.getByText('Old title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'New title' } });
+      fireEvent.blur(input);
+      expect(onRename).toHaveBeenCalledWith('New title');
+    });
+
+    it('does not call onRename on blur when title is empty', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Old title', onRename });
+      fireEvent.dblClick(screen.getByText('Old title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: '' } });
+      fireEvent.blur(input);
+      expect(onRename).not.toHaveBeenCalled();
+    });
+
+    it('does not call onRename on blur when title is unchanged', () => {
+      const onRename = vi.fn();
+      renderTodoCard({ title: 'Same title', onRename });
+      fireEvent.dblClick(screen.getByText('Same title'));
+      const input = screen.getByRole('textbox') as HTMLInputElement;
+      fireEvent.blur(input);
+      expect(onRename).not.toHaveBeenCalled();
     });
   });
 });

@@ -18,6 +18,7 @@ function makeNode(overrides: Partial<{ id: string; title: string; x: number; y: 
       isEditing: false,
       onConfirm: vi.fn(),
       onCancel: vi.fn(),
+      onRename: vi.fn(),
     },
   };
 }
