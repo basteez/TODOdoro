@@ -1,5 +1,5 @@
 import { ReactFlow, Background, Controls } from '@xyflow/react';
-import type { Node, NodeTypes, NodeMouseHandler } from '@xyflow/react';
+import type { Node, NodeTypes, NodeMouseHandler, OnNodesChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
 const defaultNodes: Node[] = [];
@@ -11,6 +11,7 @@ interface ConstellationCanvasProps {
   onDoubleClick?: (event: React.MouseEvent) => void;
   onNodeDragStart?: NodeMouseHandler;
   onNodeDragStop?: NodeMouseHandler;
+  onNodesChange?: OnNodesChange;
 }
 
 export function ConstellationCanvas({
@@ -19,6 +20,7 @@ export function ConstellationCanvas({
   onDoubleClick,
   onNodeDragStart,
   onNodeDragStop,
+  onNodesChange,
 }: ConstellationCanvasProps) {
   return (
     <ReactFlow
@@ -30,6 +32,7 @@ export function ConstellationCanvas({
       zoomOnScroll
       zoomOnDoubleClick={false}
       onDoubleClick={onDoubleClick}
+      {...(onNodesChange ? { onNodesChange } : {})}
       {...(onNodeDragStart ? { onNodeDragStart } : {})}
       {...(onNodeDragStop ? { onNodeDragStop } : {})}
       style={{ backgroundColor: 'var(--canvas-bg)' }}

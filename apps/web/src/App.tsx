@@ -2,8 +2,8 @@ import { Component, useMemo, useState, useCallback, useEffect, useRef } from 're
 import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
 import { CanvasHint, ConstellationCanvas, TodoCard } from '@tododoro/ui';
 import type { TodoCardData } from '@tododoro/ui';
-import type { Node, NodeTypes } from '@xyflow/react';
-import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
+import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
+import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
 import { JsonEventStore } from '@tododoro/storage';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import { handleDeclareTodo, handleRenameTodo, handlePositionTodo } from './commands/todoCommands.js';
@@ -95,9 +95,11 @@ function CanvasInner() {
     [todos.items],
   );
 
-  const nodes: Node<TodoCardData>[] = editingNode
-    ? [...todoNodes, editingNode]
-    : todoNodes;
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<TodoCardData>>(todoNodes);
+
+  useEffect(() => {
+    setFlowNodes(editingNode ? [...todoNodes, editingNode] : todoNodes);
+  }, [todoNodes, editingNode, setFlowNodes]);
 
   const handleNodeDragStart = useCallback((_event: ReactMouseEvent, node: Node) => {
     if (dragDebounceRef.current !== null && dragDebounceRef.current.nodeId === node.id) {
@@ -178,11 +180,12 @@ function CanvasInner() {
   return (
     <div className="relative w-full h-full">
       <ConstellationCanvas
-        nodes={nodes}
+        nodes={flowNodes}
         nodeTypes={nodeTypes}
         onDoubleClick={handleDoubleClick}
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
+        onNodesChange={onNodesChange as OnNodesChange}
       />
       <CanvasHint isEmpty={isEmpty && editingNode === null} />
       {capMessage && (
