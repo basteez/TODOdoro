@@ -6,7 +6,7 @@ import type { Node, NodeTypes } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import { JsonEventStore } from '@tododoro/storage';
 import { useCanvasStore } from './stores/useCanvasStore.js';
-import { handleDeclareTodo } from './commands/todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo } from './commands/todoCommands.js';
 import { SystemClock } from './adapters/SystemClock.js';
 import { CryptoIdGenerator } from './adapters/CryptoIdGenerator.js';
 
@@ -83,6 +83,12 @@ function CanvasInner() {
           isEditing: false,
           onConfirm: () => {},
           onCancel: () => {},
+          onRename: async (newTitle: string) => {
+            const result = await handleRenameTodo(item.id, newTitle, eventStore, clock, idGenerator);
+            if (!result.ok) {
+              console.error('Failed to rename todo:', result.error);
+            }
+          },
         },
       })),
     [todos.items],
@@ -134,6 +140,7 @@ function CanvasInner() {
           isEditing: true,
           onConfirm,
           onCancel,
+          onRename: () => {},
         },
       });
     },

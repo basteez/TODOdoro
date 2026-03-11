@@ -8,6 +8,7 @@ export type TodoCardData = {
   isEditing: boolean;
   onConfirm: (title: string) => void;
   onCancel: () => void;
+  onRename: (newTitle: string) => void | Promise<void>;
   [key: string]: unknown;
 };
 
@@ -39,9 +40,12 @@ const inputStyle: React.CSSProperties = {
 };
 
 export function TodoCard({ data }: NodeProps<TodoCardNode>) {
-  const { title, isEditing, onConfirm, onCancel } = data;
+  const { title, isEditing, onConfirm, onCancel, onRename } = data;
   const inputRef = useRef<HTMLInputElement>(null);
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   // React Flow's NodeWrapper manages focus on its own wrapper div, reclaiming
   // it after rAF. Use setTimeout to focus after React Flow's handlers settle.
@@ -51,6 +55,16 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
       return () => clearTimeout(id);
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    if (isRenaming) {
+      const id = setTimeout(() => {
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+      }, 0);
+      return () => clearTimeout(id);
+    }
+  }, [isRenaming]);
 
   // Prevent React Flow's NodeWrapper from stealing focus back on click inside the card
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -83,6 +97,36 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
     }
   }
 
+  function handleRenameKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsRenaming(false);
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const trimmed = renameValue.trim();
+      if (trimmed.length > 0 && trimmed !== title) {
+        onRename(trimmed);
+      }
+      setIsRenaming(false);
+    }
+  }
+
+  function handleRenameBlur() {
+    const trimmed = renameValue.trim();
+    if (trimmed.length > 0 && trimmed !== title) {
+      onRename(trimmed);
+    }
+    setIsRenaming(false);
+  }
+
+  function handleTitleDoubleClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setRenameValue(title);
+    setIsRenaming(true);
+  }
+
   if (isEditing) {
     return (
       <div style={cardStyle} onMouseDown={handleMouseDown}>
@@ -100,9 +144,25 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
     );
   }
 
+  if (isRenaming) {
+    return (
+      <div style={cardStyle} onMouseDown={handleMouseDown}>
+        <input
+          ref={renameInputRef}
+          type="text"
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={handleRenameKeyDown}
+          onBlur={handleRenameBlur}
+          style={inputStyle}
+        />
+      </div>
+    );
+  }
+
   return (
     <div style={cardStyle}>
-      <span>{title}</span>
+      <span onDoubleClick={handleTitleDoubleClick}>{title}</span>
     </div>
   );
 }

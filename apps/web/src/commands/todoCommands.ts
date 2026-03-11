@@ -1,6 +1,7 @@
 import {
   declareTodo,
   positionTodo,
+  renameTodo,
   reduceTodo,
   INITIAL_TODO_STATE,
 } from '@tododoro/domain';
@@ -37,6 +38,32 @@ export async function handleDeclareTodo(
 
     await eventStore.append(positionResult);
     useCanvasStore.getState().applyEvent(positionResult);
+
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { ok: false, error: message };
+  }
+}
+
+export async function handleRenameTodo(
+  todoId: string,
+  newTitle: string,
+  eventStore: EventStore,
+  clock: Clock,
+  idGenerator: IdGenerator,
+): Promise<Result> {
+  try {
+    const events = await eventStore.readByAggregate(todoId);
+    const state = events.reduce(reduceTodo, INITIAL_TODO_STATE);
+
+    const event = renameTodo(state, newTitle, clock, idGenerator);
+    if (event instanceof Error) {
+      return { ok: false, error: event.message };
+    }
+
+    await eventStore.append(event);
+    useCanvasStore.getState().applyEvent(event);
 
     return { ok: true };
   } catch (error) {

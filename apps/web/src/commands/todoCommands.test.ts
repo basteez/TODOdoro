@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handleDeclareTodo } from './todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo } from './todoCommands.js';
+import type { DomainEvent } from '@tododoro/domain';
 import { useCanvasStore } from '../stores/useCanvasStore.js';
 import {
   INITIAL_TODO_LIST_STATE,
@@ -122,6 +123,100 @@ describe('handleDeclareTodo', () => {
     // (though it may propagate the error as a result)
     await expect(
       handleDeclareTodo('Test', { x: 0, y: 0 }, failingStore, clock, idGenerator),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe('handleRenameTodo', () => {
+  let eventStore: EventStore;
+  let clock: Clock;
+  let idGenerator: IdGenerator;
+
+  const todoId = 'todo-abc';
+  const declaredEvent: DomainEvent = {
+    eventType: 'TodoDeclared',
+    eventId: 'ev-1',
+    aggregateId: todoId,
+    schemaVersion: 1,
+    timestamp: 500,
+    title: 'Original title',
+  };
+
+  beforeEach(() => {
+    resetStore();
+    clock = createMockClock();
+    idGenerator = createMockIdGenerator();
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+    };
+    // Seed store with the todo
+    useCanvasStore.getState().applyEvent(declaredEvent);
+  });
+
+  it('returns ok: true on success', async () => {
+    const result = await handleRenameTodo(
+      todoId,
+      'New title',
+      eventStore,
+      clock,
+      idGenerator,
+    );
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('appends a TodoRenamedEvent to event store', async () => {
+    await handleRenameTodo(todoId, 'New title', eventStore, clock, idGenerator);
+
+    expect(eventStore.append).toHaveBeenCalledTimes(1);
+    const call = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(call.eventType).toBe('TodoRenamed');
+    expect(call.aggregateId).toBe(todoId);
+    expect(call.title).toBe('New title');
+  });
+
+  it('updates the canvas store title via applyEvent', async () => {
+    await handleRenameTodo(todoId, 'New title', eventStore, clock, idGenerator);
+
+    const state = useCanvasStore.getState();
+    const todo = state.todos.items.find((t) => t.id === todoId);
+    expect(todo?.title).toBe('New title');
+  });
+
+  it('returns ok: false when new title is empty', async () => {
+    const result = await handleRenameTodo(todoId, '', eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(eventStore.append).not.toHaveBeenCalled();
+  });
+
+  it('returns ok: false when todo does not exist (no events)', async () => {
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() => Promise.resolve([])),
+    };
+    const result = await handleRenameTodo(
+      'nonexistent-id',
+      'New title',
+      eventStore,
+      clock,
+      idGenerator,
+    );
+    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(eventStore.append).not.toHaveBeenCalled();
+  });
+
+  it('never throws — returns error as value', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+    await expect(
+      handleRenameTodo(todoId, 'New title', failingStore, clock, idGenerator),
     ).resolves.toBeDefined();
   });
 });
