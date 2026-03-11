@@ -39,7 +39,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
 };
 
-export function TodoCard({ data }: NodeProps<TodoCardNode>) {
+export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
   const { title, isEditing, onConfirm, onCancel, onRename } = data;
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -161,7 +161,7 @@ export function TodoCard({ data }: NodeProps<TodoCardNode>) {
   }
 
   return (
-    <div style={cardStyle}>
+    <div style={cardStyle} className={dragging ? 'scale-[1.02] shadow-lg' : ''}>
       <span onDoubleClick={handleTitleDoubleClick}>{title}</span>
     </div>
   );

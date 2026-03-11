@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { TodoCard } from '@tododoro/ui';
 import type { TodoCardData } from '@tododoro/ui';
 
-function renderTodoCard(data: Partial<TodoCardData> = {}) {
+function renderTodoCard(data: Partial<TodoCardData> = {}, dragging = false) {
   const defaultData: TodoCardData = {
     title: 'Test todo',
     todoId: 'todo-1',
@@ -20,7 +20,7 @@ function renderTodoCard(data: Partial<TodoCardData> = {}) {
     id: 'test-node',
     type: 'todoCard',
     data: defaultData,
-    dragging: false,
+    dragging,
     zIndex: 0,
     selectable: true,
     deletable: true,
@@ -34,6 +34,22 @@ function renderTodoCard(data: Partial<TodoCardData> = {}) {
 }
 
 describe('TodoCard', () => {
+  describe('drag state', () => {
+    it('applies scale-[1.02] and shadow-lg classes when dragging', () => {
+      const { container } = renderTodoCard({}, true);
+      const card = container.firstElementChild as HTMLElement;
+      expect(card.className).toContain('scale-[1.02]');
+      expect(card.className).toContain('shadow-lg');
+    });
+
+    it('does not apply drag classes when not dragging', () => {
+      const { container } = renderTodoCard({}, false);
+      const card = container.firstElementChild as HTMLElement;
+      expect(card.className).not.toContain('scale-[1.02]');
+      expect(card.className).not.toContain('shadow-lg');
+    });
+  });
+
   describe('idle state', () => {
     it('renders the title text', () => {
       renderTodoCard();

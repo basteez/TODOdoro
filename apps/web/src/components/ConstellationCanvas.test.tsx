@@ -51,4 +51,18 @@ describe('ConstellationCanvas integration', () => {
     render(<ConstellationCanvas />);
     expect(screen.queryByText('Test todo')).toBeNull();
   });
+
+  it('accepts onNodeDragStop prop without error', () => {
+    const onNodeDragStop = vi.fn();
+    expect(() =>
+      render(<ConstellationCanvas onNodeDragStop={onNodeDragStop} />),
+    ).not.toThrow();
+  });
+
+  it('accepts onNodeDragStart prop without error', () => {
+    const onNodeDragStart = vi.fn();
+    expect(() =>
+      render(<ConstellationCanvas onNodeDragStart={onNodeDragStart} />),
+    ).not.toThrow();
+  });
 });
