@@ -347,7 +347,7 @@ tododoro is **desktop-first**. The Constellation Canvas is designed for pointer 
 - **FR7:** User can assign and update a title for any todo card
 - **FR8:** User can declare a todo complete (seal it)
 - **FR9:** User can release a todo by choosing between two explicit release reasons: "completed its purpose" or "was never truly mine"
-- **FR10:** User sees the todo's full Devotion Record surfaced one final time before releasing a card with more than 5 Pomodoros invested
+- **FR10:** User can view the todo's full Devotion Record surfaced one final time before releasing a card with more than 5 Pomodoros invested
 - **FR11:** The system preserves the complete Pomodoro history of a todo when its title is renamed
 - **FR12:** The app presents an empty canvas on first launch with no required setup steps or account creation
 
@@ -402,7 +402,7 @@ tododoro is **desktop-first**. The Constellation Canvas is designed for pointer 
 
 ### Reliability & Data Integrity
 
-- **NFR8:** The app opens in a coherent, usable state 100% of the time regardless of event log state (corruption, truncation, orphaned sessions)
+- **NFR8:** The app opens in a usable state 100% of the time regardless of event log state (corruption, truncation, orphaned sessions) — canvas renders, no crash or unrecoverable error screen, and session state is recoverable via the repair pipeline
 - **NFR9:** No user data is silently lost — every unrecoverable state is handled by the repair pipeline with a deterministic fallback (orphaned sessions auto-completed; corrupted segments skipped from last valid event)
 - **NFR10:** Event writes are atomic — a `SessionStarted` event is persisted before the timer begins; no in-memory-only timer state exists
 - **NFR11:** All stored events carry a `schemaVersion` field; the app successfully replays events written by any previous version of itself
