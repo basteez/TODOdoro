@@ -10,10 +10,10 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Content-Security-Policy': [
         "default-src 'self'",
-        "script-src 'self' 'wasm-unsafe-eval'",
+        "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data:",
-        "connect-src 'none'",
+        "connect-src 'self' ws:",
         "frame-src 'none'",
         "worker-src 'self' blob:",
       ].join('; '),
