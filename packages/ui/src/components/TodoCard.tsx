@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { Node, NodeProps } from '@xyflow/react';
 
 export type TodoCardData = {
@@ -6,9 +7,11 @@ export type TodoCardData = {
   todoId: string;
   sessionsCount: number;
   isEditing: boolean;
+  isMenuOpen?: boolean;
   onConfirm: (title: string) => void;
   onCancel: () => void;
   onRename: (newTitle: string) => void | Promise<void>;
+  onMenuClose?: () => void;
   [key: string]: unknown;
 };
 
@@ -39,8 +42,27 @@ const inputStyle: React.CSSProperties = {
   width: '100%',
 };
 
+const dropdownContentStyle: React.CSSProperties = {
+  backgroundColor: 'var(--surface)',
+  border: '1px solid var(--surface-border)',
+  borderRadius: 6,
+  padding: '4px',
+  minWidth: 140,
+  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+};
+
+const dropdownItemStyle: React.CSSProperties = {
+  padding: '8px 12px',
+  cursor: 'pointer',
+  borderRadius: 4,
+  fontSize: 14,
+  fontFamily: 'Inter, sans-serif',
+  color: 'var(--text-primary)',
+  outline: 'none',
+};
+
 export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
-  const { title, isEditing, onConfirm, onCancel, onRename } = data;
+  const { title, isEditing, isMenuOpen, onConfirm, onCancel, onRename, onMenuClose } = data;
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState('');
@@ -161,8 +183,39 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
   }
 
   return (
-    <div style={cardStyle} className={dragging ? 'scale-[1.02] shadow-lg' : ''} onDoubleClick={handleTitleDoubleClick}>
-      <span>{title}</span>
-    </div>
+    <DropdownMenu.Root
+      open={isMenuOpen ?? false}
+      onOpenChange={(open) => {
+        if (!open) onMenuClose?.();
+      }}
+    >
+      <DropdownMenu.Trigger asChild>
+        <div
+          style={cardStyle}
+          className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-session-active focus-visible:ring-offset-2${dragging ? ' scale-[1.02] shadow-lg' : ''}`}
+          aria-label={`${title}, 0 Pomodoros invested, idle`}
+          onDoubleClick={handleTitleDoubleClick}
+        >
+          <span>{title}</span>
+        </div>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content style={dropdownContentStyle} sideOffset={4}>
+        <DropdownMenu.Item
+          style={dropdownItemStyle}
+          onSelect={() => {
+            setRenameValue(title);
+            setIsRenaming(true);
+          }}
+          onMouseOver={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-border)';
+          }}
+          onMouseOut={(e) => {
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+          }}
+        >
+          Rename
+        </DropdownMenu.Item>
+      </DropdownMenu.Content>
+    </DropdownMenu.Root>
   );
 }

@@ -63,6 +63,37 @@ describe('TodoCard', () => {
       expect(card.style.backgroundColor).toBe('var(--surface)');
       expect(card.style.border).toBe('1px solid var(--surface-border)');
     });
+
+    it('has aria-label with title, pomodoro count and state', () => {
+      renderTodoCard({ title: 'My task' });
+      const card = screen.getByLabelText('My task, 0 Pomodoros invested, idle');
+      expect(card).toBeTruthy();
+    });
+
+    it('has focus ring Tailwind classes for keyboard accessibility', () => {
+      const { container } = renderTodoCard();
+      const card = container.firstElementChild as HTMLElement;
+      expect(card.className).toContain('focus-visible:ring-2');
+      expect(card.className).toContain('focus-visible:ring-session-active');
+    });
+  });
+
+  describe('action menu (isMenuOpen)', () => {
+    it('does not show action menu when isMenuOpen is false', () => {
+      renderTodoCard({ isMenuOpen: false });
+      expect(screen.queryByText('Rename')).toBeNull();
+    });
+
+    it('shows Rename menu item when isMenuOpen is true', () => {
+      renderTodoCard({ isMenuOpen: true });
+      expect(screen.getByText('Rename')).toBeTruthy();
+    });
+
+    it('enters rename mode when Rename menu item is selected', () => {
+      renderTodoCard({ title: 'My todo', isMenuOpen: true });
+      fireEvent.click(screen.getByText('Rename'));
+      expect(screen.getByRole('textbox')).toBeTruthy();
+    });
   });
 
   describe('editing state', () => {

@@ -65,4 +65,14 @@ describe('ConstellationCanvas integration', () => {
       render(<ConstellationCanvas onNodeDragStart={onNodeDragStart} />),
     ).not.toThrow();
   });
+
+  it('accepts onKeyDown prop without error', () => {
+    const onKeyDown = vi.fn();
+    expect(() => render(<ConstellationCanvas onKeyDown={onKeyDown} />)).not.toThrow();
+  });
+
+  it('renders the React Flow canvas element', () => {
+    const { container } = render(<ConstellationCanvas />);
+    expect(container.querySelector('.react-flow')).not.toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 import { Component, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
-import { CanvasHint, ConstellationCanvas, TodoCard } from '@tododoro/ui';
+import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon } from '@tododoro/ui';
 import type { TodoCardData } from '@tododoro/ui';
 import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
@@ -59,6 +59,7 @@ function CanvasInner() {
 
   const [editingNode, setEditingNode] = useState<Node<TodoCardData> | null>(null);
   const [capMessage, setCapMessage] = useState<{ x: number; y: number } | null>(null);
+  const [actionMenuNodeId, setActionMenuNodeId] = useState<string | null>(null);
   const dragDebounceRef = useRef<{ timeout: ReturnType<typeof setTimeout>; nodeId: string } | null>(null);
 
   const nodeTypes: NodeTypes = useMemo(() => ({ todoCard: TodoCard }), []);
@@ -69,6 +70,52 @@ function CanvasInner() {
     const timer = setTimeout(() => setCapMessage(null), 2000);
     return () => clearTimeout(timer);
   }, [capMessage]);
+
+  // N shortcut: create card at canvas centre when no input is focused
+  useEffect(() => {
+    function handleGlobalKeyDown(e: KeyboardEvent) {
+      if (e.key !== 'n' && e.key !== 'N') return;
+      const tag = (document.activeElement as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+
+      if (todos.items.length >= 100) return;
+
+      const { x, y, zoom } = reactFlow.getViewport();
+      const centerX = (window.innerWidth / 2 - x) / zoom;
+      const centerY = (window.innerHeight / 2 - y) / zoom;
+      const position = { x: centerX, y: centerY };
+
+      const onConfirm = async (title: string) => {
+        setEditingNode(null);
+        const result = await handleDeclareTodo(title, position, eventStore, clock, idGenerator);
+        if (!result.ok) {
+          console.error('Failed to declare todo:', result.error);
+        }
+      };
+
+      const onCancel = () => {
+        setEditingNode(null);
+      };
+
+      setEditingNode({
+        id: EDITING_NODE_ID,
+        type: 'todoCard',
+        position,
+        data: {
+          title: '',
+          todoId: '',
+          sessionsCount: 0,
+          isEditing: true,
+          onConfirm,
+          onCancel,
+          onRename: () => {},
+        },
+      });
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [todos.items.length, reactFlow]);
 
   // Map store todos → React Flow nodes
   const todoNodes: Node<TodoCardData>[] = useMemo(
@@ -82,8 +129,10 @@ function CanvasInner() {
           todoId: item.id,
           sessionsCount: item.pomodoroCount,
           isEditing: false,
+          isMenuOpen: actionMenuNodeId === item.id,
           onConfirm: () => {},
           onCancel: () => {},
+          onMenuClose: () => setActionMenuNodeId(null),
           onRename: async (newTitle: string) => {
             const result = await handleRenameTodo(item.id, newTitle, eventStore, clock, idGenerator);
             if (!result.ok) {
@@ -92,7 +141,7 @@ function CanvasInner() {
           },
         },
       })),
-    [todos.items],
+    [todos.items, actionMenuNodeId],
   );
 
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<TodoCardData>>(todoNodes);
@@ -173,12 +222,25 @@ function CanvasInner() {
     [todos.items.length, reactFlow],
   );
 
+  // Enter key on focused React Flow node opens its action menu
+  const handleCanvasKeyDown = useCallback((event: React.KeyboardEvent) => {
+    if (event.key !== 'Enter') return;
+    const activeEl = document.activeElement as HTMLElement | null;
+    if (!activeEl) return;
+    const nodeEl = activeEl.closest('.react-flow__node') as HTMLElement | null;
+    if (!nodeEl) return;
+    const nodeId = nodeEl.getAttribute('data-id');
+    if (nodeId && nodeId !== EDITING_NODE_ID) {
+      setActionMenuNodeId(nodeId);
+    }
+  }, []);
+
   if (isBooting) {
     return null;
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div id="main-canvas" tabIndex={-1} className="relative w-full h-full">
       <ConstellationCanvas
         nodes={flowNodes}
         nodeTypes={nodeTypes}
@@ -186,6 +248,7 @@ function CanvasInner() {
         onNodeDragStart={handleNodeDragStart}
         onNodeDragStop={handleNodeDragStop}
         onNodesChange={onNodesChange as OnNodesChange}
+        onKeyDown={handleCanvasKeyDown}
       />
       <CanvasHint isEmpty={isEmpty && editingNode === null} />
       {capMessage && (
@@ -223,7 +286,10 @@ function Canvas() {
 export function App() {
   return (
     <ErrorBoundary>
+      <SkipLink />
       <Canvas />
+      <ShelfIcon />
+      <SettingsIcon />
     </ErrorBoundary>
   );
 }

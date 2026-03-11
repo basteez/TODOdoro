@@ -64,4 +64,32 @@ describe('App', () => {
 
     expect(screen.queryByText('Start with what calls to you')).toBeNull();
   });
+
+  it('renders the skip-to-canvas link', () => {
+    render(<App />);
+    const link = screen.getByText('Skip to canvas');
+    expect(link).toBeTruthy();
+    expect((link as HTMLAnchorElement).getAttribute('href')).toBe('#main-canvas');
+  });
+
+  it('renders shelf icon button', () => {
+    render(<App />);
+    expect(screen.getByRole('button', { name: 'Open shelf' })).toBeTruthy();
+  });
+
+  it('renders settings icon button', () => {
+    render(<App />);
+    expect(screen.getByRole('button', { name: 'Open settings' })).toBeTruthy();
+  });
+
+  it('canvas container has id main-canvas after boot', () => {
+    useCanvasStore.getState().bootstrap(
+      INITIAL_TODO_LIST_STATE,
+      INITIAL_SHELF_STATE,
+      INITIAL_DEVOTION_RECORD_STATE,
+    );
+
+    const { container } = render(<App />);
+    expect(container.querySelector('#main-canvas')).not.toBeNull();
+  });
 });
