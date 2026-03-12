@@ -1,6 +1,6 @@
 # Story 2.6: Pan and Zoom the Canvas
 
-Status: review
+Status: done
 
 ## Story
 
@@ -147,3 +147,4 @@ claude-sonnet-4-6
 ### Change Log
 
 - 2026-03-11: Implemented Story 2.6 — configured minZoom/maxZoom, panOnDrag button array, nodesFocusable, onKeyDown prop
+- 2026-03-11: Code review fixes — changed `panOnDrag={[0, 1, 2]}` to `panOnDrag={[0, 1]}` (removed right-click pan, browser context menu conflict); ShelfIcon/SettingsIcon sized up from 40×40 to 44×44px (WCAG touch target)

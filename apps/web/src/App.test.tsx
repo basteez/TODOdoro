@@ -72,12 +72,22 @@ describe('App', () => {
     expect((link as HTMLAnchorElement).getAttribute('href')).toBe('#main-canvas');
   });
 
-  it('renders shelf icon button', () => {
+  it('renders shelf icon button after boot', () => {
+    useCanvasStore.getState().bootstrap(
+      INITIAL_TODO_LIST_STATE,
+      INITIAL_SHELF_STATE,
+      INITIAL_DEVOTION_RECORD_STATE,
+    );
     render(<App />);
     expect(screen.getByRole('button', { name: 'Open shelf' })).toBeTruthy();
   });
 
-  it('renders settings icon button', () => {
+  it('renders settings icon button after boot', () => {
+    useCanvasStore.getState().bootstrap(
+      INITIAL_TODO_LIST_STATE,
+      INITIAL_SHELF_STATE,
+      INITIAL_DEVOTION_RECORD_STATE,
+    );
     render(<App />);
     expect(screen.getByRole('button', { name: 'Open settings' })).toBeTruthy();
   });

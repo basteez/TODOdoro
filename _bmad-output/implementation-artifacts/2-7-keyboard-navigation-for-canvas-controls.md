@@ -1,6 +1,6 @@
 # Story 2.7: Keyboard Navigation for Canvas Controls
 
-Status: review
+Status: done
 
 ## Story
 
@@ -174,3 +174,4 @@ claude-sonnet-4-6
 ### Change Log
 
 - 2026-03-11: Implemented Story 2.7 — keyboard nav, focus ring, action menu, N shortcut, skip link, shelf/settings icons
+- 2026-03-11: Code review fixes — removed `nodesFocusable` from ConstellationCanvas (was causing double Tab stop per card alongside Radix Trigger's own tabIndex); added explicit `tabIndex={0}` to TodoCard trigger div (single, correct tab stop with focus ring); moved ShelfIcon/SettingsIcon inside Canvas boot guard (were rendering before canvas loaded); updated App.test.tsx icon tests to bootstrap first
