@@ -47,6 +47,7 @@ export function CompletionMoment({ todoTitle, pomodoroCount, open, onDismiss, on
 
   return (
     <Dialog.Root open={open} modal={false}>
+      <Dialog.Portal>
       <Dialog.Content
         aria-label="Session complete"
         aria-live="assertive"
@@ -117,6 +118,7 @@ export function CompletionMoment({ todoTitle, pomodoroCount, open, onDismiss, on
           </div>
         )}
       </Dialog.Content>
+      </Dialog.Portal>
     </Dialog.Root>
   );
 }

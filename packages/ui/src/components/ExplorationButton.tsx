@@ -5,7 +5,7 @@ export interface ExplorationButtonProps {
 
 const buttonStyle: React.CSSProperties = {
   position: 'fixed',
-  bottom: 24,
+  bottom: 140,
   left: 24,
   width: 44,
   height: 44,

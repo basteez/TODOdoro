@@ -380,6 +380,18 @@ describe('projectTodoList', () => {
       ]);
       expect(state.items[0]!.pomodoroCount).toBe(2);
     });
+
+    it('only increments matching item when multiple items exist', () => {
+      const state = applyEvents([
+        makeTodoDeclared('todo-1'),
+        makeTodoDeclared('todo-2'),
+        makeSessionStarted('session-1', null),
+        makeSessionCompleted('session-1'),
+        makeSessionAttributed('session-1', 'todo-1'),
+      ]);
+      expect(state.items[0]!.pomodoroCount).toBe(1);
+      expect(state.items[1]!.pomodoroCount).toBe(0);
+    });
   });
 
   describe('default (unhandled events)', () => {
