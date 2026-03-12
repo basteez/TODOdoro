@@ -1,6 +1,6 @@
 # Story 2.7: Keyboard Navigation for Canvas Controls
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -33,38 +33,38 @@ So that the full canvas experience is accessible without a pointer device.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Configure React Flow keyboard navigation (AC: #1, #6)
-  - [ ] Enable React Flow keyboard accessibility: Tab through nodes sequentially
-  - [ ] React Flow nodes must have `tabIndex={0}` and proper `aria-label`
-  - [ ] `TodoCard` `aria-label`: `"[title], [N] Pomodoros invested, [state]"` (state: idle/active session)
-  - [ ] For now, Pomodoro count is 0 for all cards (session features in Epic 3)
-- [ ] Task 2: Style focus ring (AC: #1, #6)
-  - [ ] Focus ring: 2px solid `--session-active` colour, 2px offset
-  - [ ] Apply only on `:focus-visible` — hidden for mouse clicks, shown for keyboard
-  - [ ] Tailwind: `focus-visible:ring-2 focus-visible:ring-[var(--session-active)] focus-visible:ring-offset-2`
-  - [ ] Verify contrast meets WCAG 2.1 AA against `--canvas-bg` and `--surface` backgrounds
-- [ ] Task 3: Enter key opens card action menu (AC: #2)
-  - [ ] On focused `TodoCard`, Enter key → open a context menu / dropdown
-  - [ ] For Epic 2: menu items are Rename only (Seal/Release/Start Session are future epics)
-  - [ ] Use Radix `DropdownMenu` triggered by Enter on focused card
-  - [ ] Menu is keyboard navigable (Arrow keys, Enter to select, Escape to close) — Radix handles this
-- [ ] Task 4: `N` shortcut for card creation (AC: #3)
-  - [ ] Register global keyboard listener for `N` key (when no input/textarea is focused)
-  - [ ] Trigger create-card flow at canvas centre (or last viewport centre)
-  - [ ] Use `useEffect` with cleanup: `addEventListener` / `removeEventListener`
-  - [ ] Guard: do not trigger if user is typing in an input field
-- [ ] Task 5: Create placeholder Shelf and Settings icons (AC: #4)
-  - [ ] Add Shelf icon (placeholder) in bottom-right or right edge of canvas — `<button>` with `aria-label="Open shelf"`
-  - [ ] Add Settings icon (placeholder) in a fixed canvas corner — `<button>` with `aria-label="Open settings"`
-  - [ ] Both are `<button>` elements, focusable via Tab, activatable via Enter/Space
-  - [ ] Visual: icon only, ~35% opacity at rest, opacity increase on hover/focus
-  - [ ] Functionality is placeholder — actual Shelf (Epic 5) and Settings (Epic 7) come later
-- [ ] Task 6: Skip-to-canvas link (AC: #5)
-  - [ ] Add visually hidden skip link as first focusable element in the document
-  - [ ] Text: "Skip to canvas"
-  - [ ] On activation: move focus to the React Flow canvas container
-  - [ ] Visually hidden by default, visible on `:focus` (standard skip-link pattern)
-  - [ ] Tailwind: `sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 ...`
+- [x] Task 1: Configure React Flow keyboard navigation (AC: #1, #6)
+  - [x] Enable React Flow keyboard accessibility: Tab through nodes sequentially
+  - [x] React Flow nodes must have `tabIndex={0}` and proper `aria-label`
+  - [x] `TodoCard` `aria-label`: `"[title], [N] Pomodoros invested, [state]"` (state: idle/active session)
+  - [x] For now, Pomodoro count is 0 for all cards (session features in Epic 3)
+- [x] Task 2: Style focus ring (AC: #1, #6)
+  - [x] Focus ring: 2px solid `--session-active` colour, 2px offset
+  - [x] Apply only on `:focus-visible` — hidden for mouse clicks, shown for keyboard
+  - [x] Tailwind: `focus-visible:ring-2 focus-visible:ring-[var(--session-active)] focus-visible:ring-offset-2`
+  - [x] Verify contrast meets WCAG 2.1 AA against `--canvas-bg` and `--surface` backgrounds
+- [x] Task 3: Enter key opens card action menu (AC: #2)
+  - [x] On focused `TodoCard`, Enter key → open a context menu / dropdown
+  - [x] For Epic 2: menu items are Rename only (Seal/Release/Start Session are future epics)
+  - [x] Use Radix `DropdownMenu` triggered by Enter on focused card
+  - [x] Menu is keyboard navigable (Arrow keys, Enter to select, Escape to close) — Radix handles this
+- [x] Task 4: `N` shortcut for card creation (AC: #3)
+  - [x] Register global keyboard listener for `N` key (when no input/textarea is focused)
+  - [x] Trigger create-card flow at canvas centre (or last viewport centre)
+  - [x] Use `useEffect` with cleanup: `addEventListener` / `removeEventListener`
+  - [x] Guard: do not trigger if user is typing in an input field
+- [x] Task 5: Create placeholder Shelf and Settings icons (AC: #4)
+  - [x] Add Shelf icon (placeholder) in bottom-right or right edge of canvas — `<button>` with `aria-label="Open shelf"`
+  - [x] Add Settings icon (placeholder) in a fixed canvas corner — `<button>` with `aria-label="Open settings"`
+  - [x] Both are `<button>` elements, focusable via Tab, activatable via Enter/Space
+  - [x] Visual: icon only, ~35% opacity at rest, opacity increase on hover/focus
+  - [x] Functionality is placeholder — actual Shelf (Epic 5) and Settings (Epic 7) come later
+- [x] Task 6: Skip-to-canvas link (AC: #5)
+  - [x] Add visually hidden skip link as first focusable element in the document
+  - [x] Text: "Skip to canvas"
+  - [x] On activation: move focus to the React Flow canvas container
+  - [x] Visually hidden by default, visible on `:focus` (standard skip-link pattern)
+  - [x] Tailwind: `sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 ...`
 
 ## Dev Notes
 
@@ -137,9 +137,41 @@ apps/web/src/
 ## Dev Agent Record
 
 ### Agent Model Used
+claude-sonnet-4-6
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Added `aria-label="${title}, 0 Pomodoros invested, idle"` to idle TodoCard trigger div (AC #1, #6)
+- Applied focus ring via Tailwind: `focus-visible:ring-2 focus-visible:ring-session-active focus-visible:ring-offset-2 focus-visible:outline-none` (AC #1, #6)
+- Integrated `@radix-ui/react-dropdown-menu` — idle card is wrapped in `DropdownMenu.Root` with controlled `open` state (AC #2)
+- Enter key on focused React Flow node detected via `onKeyDown` on ReactFlow → sets `actionMenuNodeId` in App.tsx (AC #2)
+- `isMenuOpen` and `onMenuClose` added to `TodoCardData` so App.tsx can control menu state per card (AC #2)
+- `N` key global listener in `CanvasInner` via `useEffect` with cleanup; creates card at current viewport centre; guards against input focus (AC #3)
+- Created `SkipLink.tsx` — visually hidden skip link pointing to `#main-canvas`, reveals on focus (AC #5)
+- Created `ShelfIcon.tsx` — fixed bottom-right button, `aria-label="Open shelf"`, 35% opacity, keyboard focusable (AC #4)
+- Created `SettingsIcon.tsx` — fixed top-right button, `aria-label="Open settings"`, 35% opacity, keyboard focusable (AC #4)
+- `CanvasInner` wrapper div gets `id="main-canvas" tabIndex={-1}` as skip link target (AC #5)
+- `nodesFocusable` prop added to ConstellationCanvas for explicit React Flow Tab navigation (AC #1)
+- All 86 tests pass (27 TodoCard tests including 3 new accessibility/menu tests, 7 accessibility component tests, 8 App tests)
+
 ### File List
+
+- packages/ui/src/components/ConstellationCanvas.tsx
+- packages/ui/src/components/TodoCard.tsx
+- packages/ui/src/components/SkipLink.tsx (NEW)
+- packages/ui/src/components/ShelfIcon.tsx (NEW)
+- packages/ui/src/components/SettingsIcon.tsx (NEW)
+- packages/ui/src/index.ts
+- apps/web/src/App.tsx
+- apps/web/src/components/ConstellationCanvas.test.tsx
+- apps/web/src/components/TodoCard.test.tsx
+- apps/web/src/components/accessibility.test.tsx (NEW)
+- apps/web/src/App.test.tsx
+- packages/ui/package.json
+
+### Change Log
+
+- 2026-03-11: Implemented Story 2.7 — keyboard nav, focus ring, action menu, N shortcut, skip link, shelf/settings icons
+- 2026-03-11: Code review fixes — removed `nodesFocusable` from ConstellationCanvas (was causing double Tab stop per card alongside Radix Trigger's own tabIndex); added explicit `tabIndex={0}` to TodoCard trigger div (single, correct tab stop with focus ring); moved ShelfIcon/SettingsIcon inside Canvas boot guard (were rendering before canvas loaded); updated App.test.tsx icon tests to bootstrap first

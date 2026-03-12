@@ -12,6 +12,7 @@ interface ConstellationCanvasProps {
   onNodeDragStart?: NodeMouseHandler;
   onNodeDragStop?: NodeMouseHandler;
   onNodesChange?: OnNodesChange;
+  onKeyDown?: (event: React.KeyboardEvent) => void;
 }
 
 export function ConstellationCanvas({
@@ -21,6 +22,7 @@ export function ConstellationCanvas({
   onNodeDragStart,
   onNodeDragStop,
   onNodesChange,
+  onKeyDown,
 }: ConstellationCanvasProps) {
   return (
     <ReactFlow
@@ -28,10 +30,14 @@ export function ConstellationCanvas({
       edges={emptyEdges}
       {...(nodeTypes ? { nodeTypes } : {})}
       fitView
-      panOnDrag
+      panOnDrag={[0, 1]}
       zoomOnScroll
       zoomOnDoubleClick={false}
+      minZoom={0.1}
+      maxZoom={4}
+      nodesFocusable={false}
       onDoubleClick={onDoubleClick}
+      onKeyDown={onKeyDown}
       {...(onNodesChange ? { onNodesChange } : {})}
       {...(onNodeDragStart ? { onNodeDragStart } : {})}
       {...(onNodeDragStop ? { onNodeDragStop } : {})}
