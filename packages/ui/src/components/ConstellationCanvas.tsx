@@ -30,12 +30,12 @@ export function ConstellationCanvas({
       edges={emptyEdges}
       {...(nodeTypes ? { nodeTypes } : {})}
       fitView
-      panOnDrag={[0, 1, 2]}
+      panOnDrag={[0, 1]}
       zoomOnScroll
       zoomOnDoubleClick={false}
       minZoom={0.1}
       maxZoom={4}
-      nodesFocusable
+      nodesFocusable={false}
       onDoubleClick={onDoubleClick}
       onKeyDown={onKeyDown}
       {...(onNodesChange ? { onNodesChange } : {})}

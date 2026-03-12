@@ -240,7 +240,7 @@ function CanvasInner() {
   }
 
   return (
-    <div id="main-canvas" tabIndex={-1} className="relative w-full h-full">
+    <div id="main-canvas" tabIndex={-1} className="absolute inset-0">
       <ConstellationCanvas
         nodes={flowNodes}
         nodeTypes={nodeTypes}
@@ -277,9 +277,13 @@ function Canvas() {
   }
 
   return (
-    <ReactFlowProvider>
-      <CanvasInner />
-    </ReactFlowProvider>
+    <>
+      <ReactFlowProvider>
+        <CanvasInner />
+      </ReactFlowProvider>
+      <ShelfIcon />
+      <SettingsIcon />
+    </>
   );
 }
 
@@ -288,8 +292,6 @@ export function App() {
     <ErrorBoundary>
       <SkipLink />
       <Canvas />
-      <ShelfIcon />
-      <SettingsIcon />
     </ErrorBoundary>
   );
 }

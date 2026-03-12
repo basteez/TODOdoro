@@ -16,10 +16,10 @@ describe('SkipLink', () => {
     expect(link.getAttribute('href')).toBe('#main-canvas');
   });
 
-  it('is visually hidden by default (sr-only class)', () => {
+  it('is visually hidden by default (translated off-screen)', () => {
     render(<SkipLink />);
     const link = screen.getByText('Skip to canvas');
-    expect(link.className).toContain('sr-only');
+    expect(link.className).toContain('-translate-y-full');
   });
 });
 
