@@ -24,6 +24,7 @@ const KNOWN_EVENT_TYPES = new Set<string>([
   'SessionStarted',
   'SessionCompleted',
   'SessionAbandoned',
+  'SessionAttributed',
   'SnapshotCreated',
 ]);
 

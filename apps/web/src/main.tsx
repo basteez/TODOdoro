@@ -28,6 +28,13 @@ async function bootstrap() {
   const allEvents = await eventStore.readAll();
   const repairedEvents = repairEvents(allEvents, clock, idGenerator);
 
+  // Persist any events synthesized by the repair pipeline (e.g. auto-completed orphaned sessions)
+  const originalEventIds = new Set(allEvents.map((e) => e.eventId));
+  const synthesizedEvents = repairedEvents.filter((e) => !originalEventIds.has(e.eventId));
+  for (const event of synthesizedEvents) {
+    await eventStore.append(event);
+  }
+
   const lastSnapshot = [...repairedEvents]
     .reverse()
     .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated');

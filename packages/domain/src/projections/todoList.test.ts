@@ -15,6 +15,7 @@ import type {
   SessionStartedEvent,
   SessionCompletedEvent,
   SessionAbandonedEvent,
+  SessionAttributedEvent,
   SnapshotCreatedEvent,
 } from '../events.js';
 
@@ -332,6 +333,52 @@ describe('projectTodoList', () => {
       const initial = applyEvents([makeTodoDeclared('todo-1')]);
       const state = projectTodoList(initial, makeSessionAbandoned('unknown'));
       expect(state).toBe(initial);
+    });
+  });
+
+  describe('SessionAttributed', () => {
+    function makeSessionAttributed(
+      aggregateId: string,
+      todoId: string,
+    ): SessionAttributedEvent {
+      return {
+        eventType: 'SessionAttributed',
+        eventId: `evt-attr-${aggregateId}`,
+        aggregateId,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: BASE_TIMESTAMP + 30 * 60 * 1000,
+        todoId,
+      };
+    }
+
+    it('increments pomodoroCount on target todo', () => {
+      const state = applyEvents([
+        makeTodoDeclared('todo-1'),
+        makeSessionStarted('session-1', null),
+        makeSessionCompleted('session-1'),
+        makeSessionAttributed('session-1', 'todo-1'),
+      ]);
+      expect(state.items[0]!.pomodoroCount).toBe(1);
+    });
+
+    it('ignores attribution for non-existent todo', () => {
+      const state = applyEvents([
+        makeTodoDeclared('todo-1'),
+        makeSessionAttributed('session-1', 'non-existent'),
+      ]);
+      expect(state.items[0]!.pomodoroCount).toBe(0);
+    });
+
+    it('stacks with existing pomodoro count', () => {
+      const state = applyEvents([
+        makeTodoDeclared('todo-1'),
+        makeSessionStarted('session-1', 'todo-1'),
+        makeSessionCompleted('session-1'),
+        makeSessionStarted('session-2', null),
+        makeSessionCompleted('session-2'),
+        makeSessionAttributed('session-2', 'todo-1'),
+      ]);
+      expect(state.items[0]!.pomodoroCount).toBe(2);
     });
   });
 

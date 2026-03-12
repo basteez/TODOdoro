@@ -1,6 +1,6 @@
 # Story 3.4: Session Abandonment Below 60-Second Threshold
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -23,39 +23,39 @@ so that accidental starts or interruptions never pollute my Devotion Record and 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement `handleAbandonSession` in `sessionCommands.ts` (AC: #1)
-  - [ ] Add to `apps/web/src/commands/sessionCommands.ts`
-  - [ ] Pattern: read session events by aggregateId → reduce → call `abandonSession()` → append → update stores
-  - [ ] `await eventStore.append(event)` before any UI update
-  - [ ] After append: `useSessionStore.getState().endSession()` + `useCanvasStore.getState().applyEvent(event)`
-  - [ ] `applyEvent(SessionAbandonedEvent)` does NOT increment pomodoro count or add devotion session (domain projections handle this)
-- [ ] Task 2: Add cancel/abandon affordance to the session UI (AC: #1)
-  - [ ] Add a cancel button/action accessible during an active session
-  - [ ] Options: (a) small X button on the `AnalogTimerWipe`, (b) Escape key handler, (c) click on the timer to cancel
-  - [ ] Recommended: small X button on timer + Escape key as additional trigger
-  - [ ] Cancel button: `<button aria-label="Cancel session">` — minimal, not prominent
-  - [ ] On cancel click: check elapsed time. If < 60s → call `handleAbandonSession`. If ≥ 60s → call `handleCompleteSession` (early completion, not abandonment)
-- [ ] Task 3: Silent abandonment — no CompletionMoment (AC: #1)
-  - [ ] When `handleAbandonSession` is called, do NOT show `CompletionMoment`
-  - [ ] Canvas returns to neutral immediately: blue ring removed, cards un-dimmed, timer unmounted
-  - [ ] No toast, no message, no confirmation dialog, no animation — completely silent
-  - [ ] The absence of ceremony IS the design — stopping early carries zero shame
-- [ ] Task 4: Verify domain projections exclude abandoned sessions (AC: #2)
-  - [ ] `projectDevotionRecord`: already ignores `SessionAbandoned` — verify with test
-  - [ ] `projectTodoList`: already does NOT increment `pomodoroCount` on `SessionAbandoned` — verify with test
-  - [ ] No new domain code needed — projections already handle this correctly
-  - [ ] Add UI-level tests confirming no dots appear after abandonment
-- [ ] Task 5: 60-second threshold logic (AC: #1)
-  - [ ] The 60-second threshold is a UI-level decision, not domain-level
-  - [ ] When user cancels: `const elapsedMs = Date.now() - activeSession.startedAt`
-  - [ ] If `elapsedMs < 60_000` → `handleAbandonSession()`
-  - [ ] If `elapsedMs >= 60_000` → `handleCompleteSession()` (user earned the Pomodoro)
-  - [ ] This threshold may become configurable in Epic 7 — keep as a named constant: `const ABANDON_THRESHOLD_MS = 60_000`
-- [ ] Task 6: Tests (AC: #1, #2)
-  - [ ] `sessionCommands.test.ts`: handleAbandonSession writes event, updates stores
-  - [ ] Integration: cancel at 30s → no devotion dot, no CompletionMoment, canvas neutral
-  - [ ] Integration: cancel at 90s → CompletionMoment shown, devotion dot appears (early completion, not abandonment)
-  - [ ] Verify abandoned sessions excluded from devotion record display
+- [x] Task 1: Implement `handleAbandonSession` in `sessionCommands.ts` (AC: #1)
+  - [x] Add to `apps/web/src/commands/sessionCommands.ts`
+  - [x] Pattern: read session events by aggregateId → reduce → call `abandonSession()` → append → update stores
+  - [x] `await eventStore.append(event)` before any UI update
+  - [x] After append: `useSessionStore.getState().endSession()` + `useCanvasStore.getState().applyEvent(event)`
+  - [x] `applyEvent(SessionAbandonedEvent)` does NOT increment pomodoro count or add devotion session (domain projections handle this)
+- [x] Task 2: Add cancel/abandon affordance to the session UI (AC: #1)
+  - [x] Add a cancel button/action accessible during an active session
+  - [x] Options: (a) small X button on the `AnalogTimerWipe`, (b) Escape key handler, (c) click on the timer to cancel
+  - [x] Recommended: small X button on timer + Escape key as additional trigger
+  - [x] Cancel button: `<button aria-label="Cancel session">` — minimal, not prominent
+  - [x] On cancel click: check elapsed time. If < 60s → call `handleAbandonSession`. If ≥ 60s → call `handleCompleteSession` (early completion, not abandonment)
+- [x] Task 3: Silent abandonment — no CompletionMoment (AC: #1)
+  - [x] When `handleAbandonSession` is called, do NOT show `CompletionMoment`
+  - [x] Canvas returns to neutral immediately: blue ring removed, cards un-dimmed, timer unmounted
+  - [x] No toast, no message, no confirmation dialog, no animation — completely silent
+  - [x] The absence of ceremony IS the design — stopping early carries zero shame
+- [x] Task 4: Verify domain projections exclude abandoned sessions (AC: #2)
+  - [x] `projectDevotionRecord`: already ignores `SessionAbandoned` — verify with test
+  - [x] `projectTodoList`: already does NOT increment `pomodoroCount` on `SessionAbandoned` — verify with test
+  - [x] No new domain code needed — projections already handle this correctly
+  - [x] Add UI-level tests confirming no dots appear after abandonment
+- [x] Task 5: 60-second threshold logic (AC: #1)
+  - [x] The 60-second threshold is a UI-level decision, not domain-level
+  - [x] When user cancels: `const elapsedMs = Date.now() - activeSession.startedAt`
+  - [x] If `elapsedMs < 60_000` → `handleAbandonSession()`
+  - [x] If `elapsedMs >= 60_000` → `handleCompleteSession()` (user earned the Pomodoro)
+  - [x] This threshold may become configurable in Epic 7 — keep as a named constant: `const ABANDON_THRESHOLD_MS = 60_000`
+- [x] Task 6: Tests (AC: #1, #2)
+  - [x] `sessionCommands.test.ts`: handleAbandonSession writes event, updates stores
+  - [x] Integration: cancel at 30s → no devotion dot, no CompletionMoment, canvas neutral
+  - [x] Integration: cancel at 90s → CompletionMoment shown, devotion dot appears (early completion, not abandonment)
+  - [x] Verify abandoned sessions excluded from devotion record display
 
 ## Dev Notes
 
@@ -117,10 +117,26 @@ packages/ui/src/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- `handleAbandonSession` already created in Story 3.1 sessionCommands.ts
+- Added cancel button (X icon) on AnalogTimerWipe with `onCancel` prop
+- Escape key listener in App.tsx during active session
+- 60-second threshold: < 60s → abandon (silent), >= 60s → early complete (with CompletionMoment)
+- Named constant `ABANDON_THRESHOLD_MS = 60_000`
+- Silent abandonment: no CompletionMoment, no devotion dot, canvas returns to neutral
+- Domain projections already exclude abandoned sessions from devotion/pomodoro counts
+
+### Change Log
+
+- 2026-03-12: Implemented Story 3.4 — cancel button, Escape key, 60-second threshold
+
 ### File List
+
+- packages/ui/src/components/AnalogTimerWipe.tsx (MODIFIED)
+- apps/web/src/App.tsx (MODIFIED)
+- apps/web/src/commands/sessionCommands.test.ts (MODIFIED)

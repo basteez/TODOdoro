@@ -94,6 +94,15 @@ export interface SessionAbandonedEvent {
   readonly elapsedMs: number; // will be < 60000 (60s threshold)
 }
 
+export interface SessionAttributedEvent {
+  readonly eventType: 'SessionAttributed';
+  readonly eventId: string;
+  readonly aggregateId: string; // sessionId
+  readonly schemaVersion: number;
+  readonly timestamp: number;
+  readonly todoId: string; // the todo to attribute the session to
+}
+
 export interface SnapshotCreatedEvent {
   readonly eventType: 'SnapshotCreated';
   readonly eventId: string;
@@ -112,4 +121,5 @@ export type DomainEvent =
   | SessionStartedEvent
   | SessionCompletedEvent
   | SessionAbandonedEvent
+  | SessionAttributedEvent
   | SnapshotCreatedEvent;
