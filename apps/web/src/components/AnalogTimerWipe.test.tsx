@@ -22,28 +22,28 @@ describe('AnalogTimerWipe', () => {
     expect(timer.getAttribute('aria-live')).toBe('off');
   });
 
-  it('shows correct remaining minutes at start', () => {
+  it('shows correct remaining time at start', () => {
     render(<AnalogTimerWipe elapsedMs={0} configuredDurationMs={DURATION} />);
-    expect(screen.getByText('25')).toBeDefined();
+    expect(screen.getByText('25:00')).toBeDefined();
   });
 
-  it('shows correct remaining minutes mid-session', () => {
-    // 10 minutes elapsed → 15 minutes remaining
+  it('shows correct remaining time mid-session', () => {
+    // 10 minutes elapsed → 15:00 remaining
     render(<AnalogTimerWipe elapsedMs={10 * 60 * 1000} configuredDurationMs={DURATION} />);
-    expect(screen.getByText('15')).toBeDefined();
+    expect(screen.getByText('15:00')).toBeDefined();
   });
 
-  it('shows 1 minute remaining near end', () => {
-    // 24 min 30s elapsed → 30s remaining → ceil = 1
+  it('shows seconds remaining near end', () => {
+    // 24 min 30s elapsed → 30s remaining
     render(<AnalogTimerWipe elapsedMs={24.5 * 60 * 1000} configuredDurationMs={DURATION} />);
-    expect(screen.getByText('1')).toBeDefined();
+    expect(screen.getByText('0:30')).toBeDefined();
     const timer = screen.getByRole('timer');
     expect(timer.getAttribute('aria-label')).toBe('1 minute remaining');
   });
 
-  it('shows 0 when timer is complete', () => {
+  it('shows 0:00 when timer is complete', () => {
     render(<AnalogTimerWipe elapsedMs={DURATION} configuredDurationMs={DURATION} />);
-    expect(screen.getByText('0')).toBeDefined();
+    expect(screen.getByText('0:00')).toBeDefined();
   });
 
   it('renders two SVG circles (background track + foreground fill)', () => {

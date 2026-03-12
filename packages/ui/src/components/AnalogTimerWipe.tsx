@@ -12,12 +12,17 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export function AnalogTimerWipe({ elapsedMs, configuredDurationMs, onCancel }: AnalogTimerWipeProps) {
   const progress = Math.min(Math.max(elapsedMs / configuredDurationMs, 0), 1);
   const offset = CIRCUMFERENCE * (1 - progress);
-  const remainingMinutes = Math.ceil(Math.max(configuredDurationMs - elapsedMs, 0) / 60_000);
+  const remainingMs = Math.max(configuredDurationMs - elapsedMs, 0);
+  const remainingTotalSeconds = Math.ceil(remainingMs / 1_000);
+  const displayMinutes = Math.floor(remainingTotalSeconds / 60);
+  const displaySeconds = remainingTotalSeconds % 60;
+  const displayText = `${displayMinutes}:${String(displaySeconds).padStart(2, '0')}`;
+  const ariaMinutes = Math.ceil(remainingMs / 60_000);
 
   return (
     <div
       role="timer"
-      aria-label={`${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''} remaining`}
+      aria-label={`${ariaMinutes} minute${ariaMinutes !== 1 ? 's' : ''} remaining`}
       aria-live="off"
       style={{
         position: 'fixed',
@@ -91,13 +96,13 @@ export function AnalogTimerWipe({ elapsedMs, configuredDurationMs, onCancel }: A
       <span
         style={{
           fontFamily: "'JetBrains Mono', 'Inter Mono', ui-monospace, monospace",
-          fontSize: 48,
+          fontSize: 32,
           fontWeight: 600,
           color: 'var(--session-active)',
           lineHeight: 1,
         }}
       >
-        {remainingMinutes}
+        {displayText}
       </span>
     </div>
   );
