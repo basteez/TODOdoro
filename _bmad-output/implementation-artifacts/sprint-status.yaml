@@ -63,14 +63,14 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: The Pomodoro Session Loop
-  epic-3: backlog
-  3-1-start-a-linked-pomodoro-session-from-a-card: backlog
-  3-2-analog-wipe-timer-display: backlog
-  3-3-session-completion-and-first-devotion-dot: backlog
-  3-4-session-abandonment-below-60-second-threshold: backlog
-  3-5-durable-session-resume-within-window: backlog
-  3-6-durable-session-auto-complete-beyond-window: backlog
-  3-7-start-an-unlinked-exploration-session: backlog
+  epic-3: in-progress
+  3-1-start-a-linked-pomodoro-session-from-a-card: ready-for-dev
+  3-2-analog-wipe-timer-display: ready-for-dev
+  3-3-session-completion-and-first-devotion-dot: ready-for-dev
+  3-4-session-abandonment-below-60-second-threshold: ready-for-dev
+  3-5-durable-session-resume-within-window: ready-for-dev
+  3-6-durable-session-auto-complete-beyond-window: ready-for-dev
+  3-7-start-an-unlinked-exploration-session: ready-for-dev
   epic-3-retrospective: optional
 
   # Epic 4: The Devotion Record
