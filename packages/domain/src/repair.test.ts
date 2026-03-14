@@ -159,7 +159,7 @@ describe('upcastEvents', () => {
 // =============================================================================
 
 describe('skipUnknownEventTypes', () => {
-  it('passes through all 9 known event types', () => {
+  it('passes through all 10 known event types', () => {
     const knownEvents: DomainEvent[] = [
       makeTodoDeclared({ eventId: 'e1' }),
       {
@@ -198,8 +198,16 @@ describe('skipUnknownEventTypes', () => {
       makeSessionCompleted({ eventId: 'e7' }),
       makeSessionAbandoned({ eventId: 'e8' }),
       {
-        eventType: 'SnapshotCreated',
+        eventType: 'SessionAttributed',
         eventId: 'e9',
+        aggregateId: 'session-1',
+        schemaVersion: 1,
+        timestamp: 1_000_000,
+        todoId: 'todo-1',
+      },
+      {
+        eventType: 'SnapshotCreated',
+        eventId: 'e10',
         aggregateId: 'system',
         schemaVersion: 1,
         timestamp: 1_000_000,
@@ -207,7 +215,7 @@ describe('skipUnknownEventTypes', () => {
       },
     ];
     const result = skipUnknownEventTypes(knownEvents);
-    expect(result).toHaveLength(9);
+    expect(result).toHaveLength(10);
     expect(result).toEqual(knownEvents);
   });
 
@@ -335,6 +343,21 @@ describe('autoCloseOrphanedSessions', () => {
     expect(synthesized.elapsedMs).toBe(1_500_000);
     // Session C left open (within window) — no synthesized event for it
     expect(result.filter(e => e.eventType === 'SessionCompleted' && e.aggregateId === 'session-c')).toHaveLength(0);
+  });
+
+  it('leaves orphaned session with 1 second remaining (boundary test for Story 3.5)', () => {
+    // Session started at 1_000_000, duration 1_500_000 (25 min), clock at 1 second before expiry
+    const clock = new FakeClock(1_000_000 + 1_500_000 - 1_000);
+    const idGen = new FakeIdGenerator();
+    const events: DomainEvent[] = [
+      makeSessionStarted({
+        timestamp: 1_000_000,
+        configuredDurationMs: 1_500_000,
+      }),
+    ];
+    const result = autoCloseOrphanedSessions(events, clock, idGen);
+    expect(result).toHaveLength(1);
+    expect(result).toEqual(events);
   });
 
   it('synthesizes completion at exactly the configured duration boundary', () => {

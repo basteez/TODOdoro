@@ -10,6 +10,7 @@ import type {
   SessionStartedEvent,
   SessionCompletedEvent,
   SessionAbandonedEvent,
+  SessionAttributedEvent,
   TodoRenamedEvent,
   SnapshotCreatedEvent,
 } from '../events.js';
@@ -120,12 +121,15 @@ describe('projectDevotionRecord', () => {
       });
     });
 
-    it('skips exploration session (todoId: null)', () => {
+    it('tracks exploration session (todoId: null) in pendingExplorations', () => {
       const state = projectDevotionRecord(
         INITIAL_DEVOTION_RECORD_STATE,
         makeSessionStarted('session-1', null),
       );
-      expect(state).toBe(INITIAL_DEVOTION_RECORD_STATE);
+      expect(state.pendingSessions.size).toBe(0);
+      expect(state.pendingExplorations.size).toBe(1);
+      expect(state.pendingExplorations.get('session-1')).toEqual({ startedAt: BASE_TIMESTAMP });
+      expect(state.records.size).toBe(0);
     });
   });
 
@@ -216,6 +220,80 @@ describe('projectDevotionRecord', () => {
         makeSessionCompleted('session-1'),
       ]);
       expect(state.records.size).toBe(0);
+    });
+
+    it('completed exploration session is stored in completedExplorations', () => {
+      const state = applyEvents([
+        makeSessionStarted('session-1', null),
+        makeSessionCompleted('session-1', 25 * 60 * 1000),
+      ]);
+      expect(state.completedExplorations.size).toBe(1);
+      expect(state.completedExplorations.get('session-1')).toEqual({
+        startedAt: BASE_TIMESTAMP,
+        elapsedMs: 25 * 60 * 1000,
+      });
+    });
+
+    it('abandoned exploration session is removed from pendingExplorations', () => {
+      const state = applyEvents([
+        makeSessionStarted('session-1', null),
+        makeSessionAbandoned('session-1'),
+      ]);
+      expect(state.pendingExplorations.size).toBe(0);
+      expect(state.completedExplorations.size).toBe(0);
+    });
+  });
+
+  describe('SessionAttributed', () => {
+    function makeSessionAttributed(
+      aggregateId: string,
+      todoId: string,
+    ): SessionAttributedEvent {
+      return {
+        eventType: 'SessionAttributed',
+        eventId: `evt-attr-${aggregateId}`,
+        aggregateId,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: BASE_TIMESTAMP + 30 * 60 * 1000,
+        todoId,
+      };
+    }
+
+    it('moves completed exploration to target todo record', () => {
+      const state = applyEvents([
+        makeSessionStarted('session-1', null),
+        makeSessionCompleted('session-1', 25 * 60 * 1000),
+        makeSessionAttributed('session-1', 'todo-1'),
+      ]);
+      expect(state.completedExplorations.size).toBe(0);
+      const record = state.records.get('todo-1');
+      expect(record).toBeDefined();
+      expect(record!.sessions).toHaveLength(1);
+      expect(record!.sessions[0]).toEqual({
+        sessionId: 'session-1',
+        startedAt: BASE_TIMESTAMP,
+        elapsedMs: 25 * 60 * 1000,
+      });
+    });
+
+    it('ignores attribution for unknown session', () => {
+      const state = projectDevotionRecord(
+        INITIAL_DEVOTION_RECORD_STATE,
+        makeSessionAttributed('unknown', 'todo-1'),
+      );
+      expect(state).toBe(INITIAL_DEVOTION_RECORD_STATE);
+    });
+
+    it('appends to existing todo record', () => {
+      const state = applyEvents([
+        makeSessionStarted('session-1', 'todo-1', BASE_TIMESTAMP),
+        makeSessionCompleted('session-1'),
+        makeSessionStarted('session-2', null, BASE_TIMESTAMP + 100_000),
+        makeSessionCompleted('session-2'),
+        makeSessionAttributed('session-2', 'todo-1'),
+      ]);
+      const record = state.records.get('todo-1');
+      expect(record!.sessions).toHaveLength(2);
     });
   });
 });

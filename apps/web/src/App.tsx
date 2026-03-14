@@ -1,12 +1,15 @@
 import { Component, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
-import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon } from '@tododoro/ui';
+import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker } from '@tododoro/ui';
 import type { TodoCardData } from '@tododoro/ui';
 import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
 import { JsonEventStore } from '@tododoro/storage';
 import { useCanvasStore } from './stores/useCanvasStore.js';
+import { useSessionStore } from './stores/useSessionStore.js';
 import { handleDeclareTodo, handleRenameTodo, handlePositionTodo } from './commands/todoCommands.js';
+import { handleStartSession, handleCompleteSession, handleAbandonSession, handleAttributeExplorationSession } from './commands/sessionCommands.js';
+import { useSessionTick } from './hooks/useSessionTick.js';
 import { SystemClock } from './adapters/SystemClock.js';
 import { CryptoIdGenerator } from './adapters/CryptoIdGenerator.js';
 
@@ -56,11 +59,81 @@ function CanvasInner() {
   const todos = useCanvasStore((s) => s.todos);
   const isEmpty = todos.items.length === 0;
   const reactFlow = useReactFlow();
+  const activeSession = useSessionStore((s) => s.activeSession);
+  const elapsedMs = useSessionStore((s) => s.elapsedMs);
+  const isSessionActive = activeSession.status === 'active';
+  const activeTodoId = activeSession.status === 'active' ? activeSession.todoId : null;
+
+  useSessionTick();
 
   const [editingNode, setEditingNode] = useState<Node<TodoCardData> | null>(null);
   const [capMessage, setCapMessage] = useState<{ x: number; y: number } | null>(null);
   const [actionMenuNodeId, setActionMenuNodeId] = useState<string | null>(null);
+  const [completionInfo, setCompletionInfo] = useState<{ todoTitle: string | null; pomodoroCount: number; sessionId: string | null } | null>(null);
+  const [showCardPicker, setShowCardPicker] = useState(false);
   const dragDebounceRef = useRef<{ timeout: ReturnType<typeof setTimeout>; nodeId: string } | null>(null);
+  const completionFiredRef = useRef(false);
+
+  // Auto-completion trigger: when elapsed >= duration
+  useEffect(() => {
+    if (!isSessionActive || activeSession.status !== 'active') {
+      completionFiredRef.current = false;
+      return;
+    }
+    if (elapsedMs >= activeSession.configuredDurationMs && !completionFiredRef.current) {
+      completionFiredRef.current = true;
+      const todoTitle = activeSession.todoId
+        ? (todos.items.find((t) => t.id === activeSession.todoId)?.title ?? null)
+        : null;
+      const completedSessionId = activeSession.sessionId;
+      handleCompleteSession(eventStore, clock, idGenerator).then(() => {
+        const updatedTodo = activeSession.todoId
+          ? useCanvasStore.getState().todos.items.find((t) => t.id === activeSession.todoId)
+          : null;
+        setCompletionInfo({
+          todoTitle,
+          pomodoroCount: updatedTodo?.pomodoroCount ?? 1,
+          sessionId: activeSession.todoId === null ? completedSessionId : null,
+        });
+      });
+    }
+  }, [elapsedMs, isSessionActive, activeSession, todos.items]);
+
+  // Cancel/abandon handler: < 60s → abandon, >= 60s → early complete
+  const ABANDON_THRESHOLD_MS = 60_000;
+  const handleCancelSession = useCallback(async () => {
+    if (activeSession.status !== 'active') return;
+    const elapsed = Date.now() - activeSession.startedAt;
+    if (elapsed < ABANDON_THRESHOLD_MS) {
+      await handleAbandonSession(eventStore, clock, idGenerator);
+    } else {
+      const todoTitle = activeSession.todoId
+        ? (todos.items.find((t) => t.id === activeSession.todoId)?.title ?? null)
+        : null;
+      const cancelledSessionId = activeSession.sessionId;
+      await handleCompleteSession(eventStore, clock, idGenerator);
+      const updatedTodo = activeSession.todoId
+        ? useCanvasStore.getState().todos.items.find((t) => t.id === activeSession.todoId)
+        : null;
+      setCompletionInfo({
+        todoTitle,
+        pomodoroCount: updatedTodo?.pomodoroCount ?? 1,
+        sessionId: activeSession.todoId === null ? cancelledSessionId : null,
+      });
+    }
+  }, [activeSession, todos.items]);
+
+  // Escape key to cancel session
+  useEffect(() => {
+    if (!isSessionActive) return;
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        handleCancelSession();
+      }
+    }
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isSessionActive, handleCancelSession]);
 
   const nodeTypes: NodeTypes = useMemo(() => ({ todoCard: TodoCard }), []);
 
@@ -117,6 +190,30 @@ function CanvasInner() {
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [todos.items.length, reactFlow]);
 
+  const onStartSessionCallback = useCallback(async (todoId: string) => {
+    await handleStartSession(todoId, eventStore, clock, idGenerator);
+  }, []);
+
+  const onStartExplorationSession = useCallback(async () => {
+    await handleStartSession(null, eventStore, clock, idGenerator);
+  }, []);
+
+  const onAttachExplorationSession = useCallback(() => {
+    setShowCardPicker(true);
+  }, []);
+
+  const onCardPickerSelect = useCallback(async (todoId: string) => {
+    if (!completionInfo?.sessionId) return;
+    await handleAttributeExplorationSession(completionInfo.sessionId, todoId, eventStore, clock, idGenerator);
+    setShowCardPicker(false);
+    setCompletionInfo(null);
+  }, [completionInfo]);
+
+  const onCardPickerCancel = useCallback(() => {
+    setShowCardPicker(false);
+    setCompletionInfo(null);
+  }, []);
+
   // Map store todos → React Flow nodes
   const todoNodes: Node<TodoCardData>[] = useMemo(
     () =>
@@ -130,9 +227,12 @@ function CanvasInner() {
           sessionsCount: item.pomodoroCount,
           isEditing: false,
           isMenuOpen: actionMenuNodeId === item.id,
+          isSessionActive: isSessionActive && activeTodoId !== null,
+          isActiveCard: activeTodoId === item.id,
           onConfirm: () => {},
           onCancel: () => {},
           onMenuClose: () => setActionMenuNodeId(null),
+          onStartSession: onStartSessionCallback,
           onRename: async (newTitle: string) => {
             const result = await handleRenameTodo(item.id, newTitle, eventStore, clock, idGenerator);
             if (!result.ok) {
@@ -141,7 +241,7 @@ function CanvasInner() {
           },
         },
       })),
-    [todos.items, actionMenuNodeId],
+    [todos.items, actionMenuNodeId, isSessionActive, activeTodoId, onStartSessionCallback],
   );
 
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<TodoCardData>>(todoNodes);
@@ -251,6 +351,30 @@ function CanvasInner() {
         onKeyDown={handleCanvasKeyDown}
       />
       <CanvasHint isEmpty={isEmpty && editingNode === null} />
+      {isSessionActive && activeSession.status === 'active' && (
+        <AnalogTimerWipe
+          elapsedMs={elapsedMs}
+          configuredDurationMs={activeSession.configuredDurationMs}
+          onCancel={handleCancelSession}
+        />
+      )}
+      {completionInfo && !showCardPicker && (
+        <CompletionMoment
+          todoTitle={completionInfo.todoTitle}
+          pomodoroCount={completionInfo.pomodoroCount}
+          open={true}
+          onDismiss={() => setCompletionInfo(null)}
+          onAttach={completionInfo.sessionId ? onAttachExplorationSession : undefined}
+        />
+      )}
+      {showCardPicker && (
+        <CardPicker
+          open={true}
+          items={todos.items.map((t) => ({ id: t.id, title: t.title, pomodoroCount: t.pomodoroCount }))}
+          onSelect={onCardPickerSelect}
+          onCancel={onCardPickerCancel}
+        />
+      )}
       {capMessage && (
         <div
           className="fixed z-50 px-3 py-1.5 rounded text-xs"
@@ -265,6 +389,7 @@ function CanvasInner() {
           Canvas is full — 100 cards maximum
         </div>
       )}
+      {!isSessionActive && <ExplorationButton disabled={false} onClick={onStartExplorationSession} />}
     </div>
   );
 }

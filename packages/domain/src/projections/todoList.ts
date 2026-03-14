@@ -117,6 +117,21 @@ export function projectTodoList(
       return { ...state, pendingSessions: newPending };
     }
 
+    case 'SessionAttributed': {
+      const todoId = event.todoId;
+      if (!state.items.some((item) => item.id === todoId)) {
+        return state;
+      }
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === todoId
+            ? { ...item, pomodoroCount: item.pomodoroCount + 1 }
+            : item,
+        ),
+      };
+    }
+
     default:
       return state;
   }

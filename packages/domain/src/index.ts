@@ -10,6 +10,7 @@ export type {
   SessionStartedEvent,
   SessionCompletedEvent,
   SessionAbandonedEvent,
+  SessionAttributedEvent,
   SnapshotCreatedEvent,
   SnapshotState,
 } from './events.js';

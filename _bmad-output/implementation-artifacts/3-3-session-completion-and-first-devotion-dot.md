@@ -1,6 +1,6 @@
 # Story 3.3: Session Completion and First Devotion Dot
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -21,53 +21,53 @@ so that I receive quiet acknowledgment and see the first evidence of my devotion
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement `handleCompleteSession` in `sessionCommands.ts` (AC: #1)
-  - [ ] Add to `apps/web/src/commands/sessionCommands.ts`
-  - [ ] Pattern: read session events by aggregateId → reduce to `SessionState` → call `completeSession()` → append → update stores
-  - [ ] `await eventStore.append(event)` before any UI update
-  - [ ] After append: `useSessionStore.getState().endSession()` + `useCanvasStore.getState().applyEvent(event)`
-  - [ ] `applyEvent` will trigger `projectDevotionRecord` and `projectTodoList` — incrementing pomodoro count and adding devotion session
-- [ ] Task 2: Auto-completion trigger (AC: #1)
-  - [ ] In the rAF tick loop (from Story 3.2): check if `elapsedMs >= configuredDurationMs`
-  - [ ] When elapsed: call `handleCompleteSession(eventStore, clock, idGenerator)` exactly once
-  - [ ] Guard against double-fire: check `activeSession.status === 'active'` before calling
-  - [ ] Stop the rAF loop immediately after completion
-- [ ] Task 3: Create `CompletionMoment` component (AC: #1)
-  - [ ] Create `packages/ui/src/components/CompletionMoment.tsx`
-  - [ ] Use `@radix-ui/react-dialog` — `Dialog.Root` with `modal={false}` (no backdrop overlay)
-  - [ ] Content: todo title + "1 Pomodoro added" (or "N Pomodoros added" — always singular/plural correct)
-  - [ ] Copy style: past-tense, declarative, 1–2 lines max. Example: "Chapter 4 — 1 Pomodoro added"
-  - [ ] No congratulatory language — no "Great job!", no emoji, no fanfare
-  - [ ] Auto-dismiss after ~3 seconds via `setTimeout` in `useEffect` (with cleanup)
-  - [ ] Dismiss on any user interaction: click anywhere, keypress, or Escape
-  - [ ] Position: centered or near the active card — brief, unobtrusive
-- [ ] Task 4: Reduced motion for CompletionMoment (AC: #1)
-  - [ ] When `prefers-reduced-motion: reduce`: no fade-in/fade-out animation
-  - [ ] Appear instantly, dismiss instantly (still auto-dismiss after ~3s or immediately on interaction)
-  - [ ] CSS: `@media (prefers-reduced-motion: reduce) { transition: none; animation: none; }`
-- [ ] Task 5: Canvas state reset after dismissal (AC: #1)
-  - [ ] On CompletionMoment dismiss: remove blue ring from active card, restore all cards to full opacity
-  - [ ] This happens via `useSessionStore.endSession()` → `activeSession` back to `{ status: 'idle' }`
-  - [ ] Components reading `activeSession.status` will automatically re-render without the session UI
-  - [ ] `AnalogTimerWipe` unmounts (conditional on `activeSession.status === 'active'`)
-- [ ] Task 6: Create `DevotionDots` component (AC: #1)
-  - [ ] Create `packages/ui/src/components/DevotionDots.tsx`
-  - [ ] Props: `count: number` (number of completed Pomodoros)
-  - [ ] Render a row of 6px filled amber dots (`var(--devotion)`)
-  - [ ] `aria-label="N Pomodoros invested"` (e.g., "1 Pomodoro invested", "3 Pomodoros invested")
-  - [ ] Position: below the card title in `TodoCard`
-  - [ ] Only render if `count > 0` — no empty dot placeholders in this story
-- [ ] Task 7: Wire `DevotionDots` into `TodoCard` (AC: #1)
-  - [ ] `TodoCard` already receives `sessionsCount` in `TodoCardData` (currently always 0)
-  - [ ] Render `<DevotionDots count={sessionsCount} />` below the title when `sessionsCount > 0`
-  - [ ] `sessionsCount` is already wired from `TodoListReadModel.pomodoroCount` through `applyEvent`
-  - [ ] After session completion, `applyEvent(SessionCompletedEvent)` increments `pomodoroCount` → dots appear
-- [ ] Task 8: Tests (AC: #1)
-  - [ ] `sessionCommands.test.ts`: handleCompleteSession writes event, updates both stores
-  - [ ] `CompletionMoment.test.tsx`: renders with title and pomodoro count, auto-dismisses, no congratulatory text
-  - [ ] `CompletionMoment.test.tsx`: dismiss on click/keypress/Escape
-  - [ ] `DevotionDots.test.tsx`: renders correct number of dots, correct aria-label, amber colour
-  - [ ] Integration: after session completes, card shows devotion dot, canvas returns to neutral
+- [x] Task 1: Implement `handleCompleteSession` in `sessionCommands.ts` (AC: #1)
+  - [x] Add to `apps/web/src/commands/sessionCommands.ts`
+  - [x] Pattern: read session events by aggregateId → reduce to `SessionState` → call `completeSession()` → append → update stores
+  - [x] `await eventStore.append(event)` before any UI update
+  - [x] After append: `useSessionStore.getState().endSession()` + `useCanvasStore.getState().applyEvent(event)`
+  - [x] `applyEvent` will trigger `projectDevotionRecord` and `projectTodoList` — incrementing pomodoro count and adding devotion session
+- [x] Task 2: Auto-completion trigger (AC: #1)
+  - [x] In the rAF tick loop (from Story 3.2): check if `elapsedMs >= configuredDurationMs`
+  - [x] When elapsed: call `handleCompleteSession(eventStore, clock, idGenerator)` exactly once
+  - [x] Guard against double-fire: check `activeSession.status === 'active'` before calling
+  - [x] Stop the rAF loop immediately after completion
+- [x] Task 3: Create `CompletionMoment` component (AC: #1)
+  - [x] Create `packages/ui/src/components/CompletionMoment.tsx`
+  - [x] Use `@radix-ui/react-dialog` — `Dialog.Root` with `modal={false}` (no backdrop overlay)
+  - [x] Content: todo title + "1 Pomodoro added" (or "N Pomodoros added" — always singular/plural correct)
+  - [x] Copy style: past-tense, declarative, 1–2 lines max. Example: "Chapter 4 — 1 Pomodoro added"
+  - [x] No congratulatory language — no "Great job!", no emoji, no fanfare
+  - [x] Auto-dismiss after ~3 seconds via `setTimeout` in `useEffect` (with cleanup)
+  - [x] Dismiss on any user interaction: click anywhere, keypress, or Escape
+  - [x] Position: centered or near the active card — brief, unobtrusive
+- [x] Task 4: Reduced motion for CompletionMoment (AC: #1)
+  - [x] When `prefers-reduced-motion: reduce`: no fade-in/fade-out animation
+  - [x] Appear instantly, dismiss instantly (still auto-dismiss after ~3s or immediately on interaction)
+  - [x] CSS: `@media (prefers-reduced-motion: reduce) { transition: none; animation: none; }`
+- [x] Task 5: Canvas state reset after dismissal (AC: #1)
+  - [x] On CompletionMoment dismiss: remove blue ring from active card, restore all cards to full opacity
+  - [x] This happens via `useSessionStore.endSession()` → `activeSession` back to `{ status: 'idle' }`
+  - [x] Components reading `activeSession.status` will automatically re-render without the session UI
+  - [x] `AnalogTimerWipe` unmounts (conditional on `activeSession.status === 'active'`)
+- [x] Task 6: Create `DevotionDots` component (AC: #1)
+  - [x] Create `packages/ui/src/components/DevotionDots.tsx`
+  - [x] Props: `count: number` (number of completed Pomodoros)
+  - [x] Render a row of 6px filled amber dots (`var(--devotion)`)
+  - [x] `aria-label="N Pomodoros invested"` (e.g., "1 Pomodoro invested", "3 Pomodoros invested")
+  - [x] Position: below the card title in `TodoCard`
+  - [x] Only render if `count > 0` — no empty dot placeholders in this story
+- [x] Task 7: Wire `DevotionDots` into `TodoCard` (AC: #1)
+  - [x] `TodoCard` already receives `sessionsCount` in `TodoCardData` (currently always 0)
+  - [x] Render `<DevotionDots count={sessionsCount} />` below the title when `sessionsCount > 0`
+  - [x] `sessionsCount` is already wired from `TodoListReadModel.pomodoroCount` through `applyEvent`
+  - [x] After session completion, `applyEvent(SessionCompletedEvent)` increments `pomodoroCount` → dots appear
+- [x] Task 8: Tests (AC: #1)
+  - [x] `sessionCommands.test.ts`: handleCompleteSession writes event, updates both stores
+  - [x] `CompletionMoment.test.tsx`: renders with title and pomodoro count, auto-dismisses, no congratulatory text
+  - [x] `CompletionMoment.test.tsx`: dismiss on click/keypress/Escape
+  - [x] `DevotionDots.test.tsx`: renders correct number of dots, correct aria-label, amber colour
+  - [x] Integration: after session completes, card shows devotion dot, canvas returns to neutral
 
 ## Dev Notes
 
@@ -146,10 +146,30 @@ packages/ui/src/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Implemented `handleCompleteSession` in sessionCommands.ts (already created in 3.1)
+- Auto-completion trigger in App.tsx: detects elapsedMs >= configuredDurationMs, fires once via completionFiredRef
+- Created `CompletionMoment` component — Radix Dialog (modal=false), past-tense copy, auto-dismiss 3s
+- Created `DevotionDots` component — 6px amber dots, correct aria-label, flex row layout
+- Wired DevotionDots into TodoCard below title (conditional on sessionsCount > 0)
+- Canvas state reset happens via endSession() → idle → React re-renders without session UI
+- 14 new tests (7 CompletionMoment + 7 DevotionDots)
+
+### Change Log
+
+- 2026-03-12: Implemented Story 3.3 — completion trigger, CompletionMoment, DevotionDots
+
 ### File List
+
+- packages/ui/src/components/CompletionMoment.tsx (NEW)
+- packages/ui/src/components/DevotionDots.tsx (NEW)
+- packages/ui/src/components/TodoCard.tsx (MODIFIED)
+- packages/ui/src/index.ts (MODIFIED)
+- apps/web/src/App.tsx (MODIFIED)
+- apps/web/src/components/CompletionMoment.test.tsx (NEW)
+- apps/web/src/components/DevotionDots.test.tsx (NEW)

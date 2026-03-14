@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { Node, NodeProps } from '@xyflow/react';
+import { DevotionDots } from './DevotionDots.js';
 
 export type TodoCardData = {
   title: string;
@@ -8,10 +9,13 @@ export type TodoCardData = {
   sessionsCount: number;
   isEditing: boolean;
   isMenuOpen?: boolean;
+  isSessionActive?: boolean;
+  isActiveCard?: boolean;
   onConfirm: (title: string) => void;
   onCancel: () => void;
   onRename: (newTitle: string) => void | Promise<void>;
   onMenuClose?: () => void;
+  onStartSession?: (todoId: string) => void;
   [key: string]: unknown;
 };
 
@@ -63,7 +67,7 @@ const dropdownItemStyle: React.CSSProperties = {
 };
 
 export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
-  const { title, isEditing, isMenuOpen, onConfirm, onCancel, onRename, onMenuClose } = data;
+  const { title, todoId, sessionsCount, isEditing, isMenuOpen, isSessionActive, isActiveCard, onConfirm, onCancel, onRename, onMenuClose, onStartSession } = data;
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -184,16 +188,59 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
     );
   }
 
+  const dimmed = isSessionActive && !isActiveCard;
+  const activeRing = isActiveCard;
+
+  const activeCardStyle: React.CSSProperties = {
+    ...cardStyle,
+    ...(activeRing ? { boxShadow: '0 0 0 2px var(--session-active)', borderColor: 'var(--session-active)' } : {}),
+    ...(dimmed ? { opacity: 0.4 } : {}),
+  };
+
+  function handleStartClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    onStartSession?.(todoId);
+  }
+
   return (
     <div
       ref={cardRef}
-      style={cardStyle}
+      style={activeCardStyle}
       className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-session-active focus-visible:ring-offset-2${dragging ? ' scale-[1.02] shadow-lg' : ''}`}
-      aria-label={`${title}, 0 Pomodoros invested, idle`}
+      aria-label={`${title}, ${sessionsCount} Pomodoro${sessionsCount !== 1 ? 's' : ''} invested, ${isActiveCard ? 'active session' : 'idle'}`}
       tabIndex={0}
       onDoubleClick={handleTitleDoubleClick}
     >
       <span>{title}</span>
+      {sessionsCount > 0 && <DevotionDots count={sessionsCount} />}
+      <button
+        aria-label={`Start session for ${title}`}
+        disabled={isSessionActive}
+        onClick={handleStartClick}
+        onMouseDown={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          width: 44,
+          height: 44,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          borderRadius: '50%',
+          cursor: isSessionActive ? 'not-allowed' : 'pointer',
+          opacity: isSessionActive ? 0.3 : 0.6,
+          color: 'var(--session-active)',
+          padding: 0,
+        }}
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" aria-hidden="true">
+          <polygon points="4,2 16,9 4,16" />
+        </svg>
+      </button>
       <DropdownMenu.Root
         open={isMenuOpen ?? false}
         onOpenChange={(open) => {
