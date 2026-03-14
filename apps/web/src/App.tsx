@@ -1,13 +1,13 @@
 import { Component, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
-import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker } from '@tododoro/ui';
+import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker, computeTimeSpan } from '@tododoro/ui';
 import type { TodoCardData } from '@tododoro/ui';
 import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
 import { JsonEventStore } from '@tododoro/storage';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
-import { handleDeclareTodo, handleRenameTodo, handlePositionTodo } from './commands/todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo } from './commands/todoCommands.js';
 import { handleStartSession, handleCompleteSession, handleAbandonSession, handleAttributeExplorationSession } from './commands/sessionCommands.js';
 import { useSessionTick } from './hooks/useSessionTick.js';
 import { SystemClock } from './adapters/SystemClock.js';
@@ -57,6 +57,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 function CanvasInner() {
   const isBooting = useCanvasStore((s) => s.isBooting);
   const todos = useCanvasStore((s) => s.todos);
+  const devotionRecord = useCanvasStore((s) => s.devotionRecord);
   const isEmpty = todos.items.length === 0;
   const reactFlow = useReactFlow();
   const activeSession = useSessionStore((s) => s.activeSession);
@@ -69,8 +70,9 @@ function CanvasInner() {
   const [editingNode, setEditingNode] = useState<Node<TodoCardData> | null>(null);
   const [capMessage, setCapMessage] = useState<{ x: number; y: number } | null>(null);
   const [actionMenuNodeId, setActionMenuNodeId] = useState<string | null>(null);
-  const [completionInfo, setCompletionInfo] = useState<{ todoTitle: string | null; pomodoroCount: number; sessionId: string | null } | null>(null);
+  const [completionInfo, setCompletionInfo] = useState<{ todoTitle: string | null; pomodoroCount: number; sessionId: string | null; variant?: 'session' | 'seal'; timeSpan?: string } | null>(null);
   const [showCardPicker, setShowCardPicker] = useState(false);
+  const [pendingSealId, setPendingSealId] = useState<string | null>(null);
   const dragDebounceRef = useRef<{ timeout: ReturnType<typeof setTimeout>; nodeId: string } | null>(null);
   const completionFiredRef = useRef(false);
 
@@ -214,6 +216,33 @@ function CanvasInner() {
     setCompletionInfo(null);
   }, []);
 
+  const onSealCallback = useCallback((todoId: string) => {
+    if (pendingSealId) return;
+    if (isSessionActive && activeTodoId === todoId) return;
+    const todo = todos.items.find((t) => t.id === todoId);
+    if (!todo) return;
+    const dr = useCanvasStore.getState().devotionRecord;
+    const record = dr.records.get(todoId);
+    const sessions = record?.sessions ?? [];
+    const timeSpan = computeTimeSpan(sessions);
+    setPendingSealId(todoId);
+    setCompletionInfo({
+      todoTitle: todo.title,
+      pomodoroCount: todo.pomodoroCount,
+      sessionId: null,
+      variant: 'seal',
+      timeSpan,
+    });
+  }, [todos.items, isSessionActive, activeTodoId, pendingSealId]);
+
+  const handleCompletionDismiss = useCallback(async () => {
+    if (pendingSealId) {
+      await handleSealTodo(pendingSealId, eventStore, clock, idGenerator);
+      setPendingSealId(null);
+    }
+    setCompletionInfo(null);
+  }, [pendingSealId]);
+
   // Map store todos → React Flow nodes
   const todoNodes: Node<TodoCardData>[] = useMemo(
     () =>
@@ -229,6 +258,7 @@ function CanvasInner() {
           isMenuOpen: actionMenuNodeId === item.id,
           isSessionActive: isSessionActive && activeTodoId !== null,
           isActiveCard: activeTodoId === item.id,
+          devotionSessions: devotionRecord.records.get(item.id)?.sessions ?? [],
           onConfirm: () => {},
           onCancel: () => {},
           onMenuClose: () => setActionMenuNodeId(null),
@@ -239,9 +269,10 @@ function CanvasInner() {
               console.error('Failed to rename todo:', result.error);
             }
           },
+          onSeal: onSealCallback,
         },
       })),
-    [todos.items, actionMenuNodeId, isSessionActive, activeTodoId, onStartSessionCallback],
+    [todos.items, actionMenuNodeId, isSessionActive, activeTodoId, onStartSessionCallback, devotionRecord, onSealCallback],
   );
 
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<TodoCardData>>(todoNodes);
@@ -363,8 +394,10 @@ function CanvasInner() {
           todoTitle={completionInfo.todoTitle}
           pomodoroCount={completionInfo.pomodoroCount}
           open={true}
-          onDismiss={() => setCompletionInfo(null)}
+          onDismiss={handleCompletionDismiss}
           onAttach={completionInfo.sessionId ? onAttachExplorationSession : undefined}
+          variant={completionInfo.variant ?? 'session'}
+          timeSpan={completionInfo.timeSpan}
         />
       )}
       {showCardPicker && (

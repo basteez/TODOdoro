@@ -7,12 +7,15 @@ export interface CompletionMomentProps {
   open: boolean;
   onDismiss: () => void;
   onAttach?: (() => void) | undefined;
+  variant?: 'session' | 'seal' | undefined;
+  timeSpan?: string | undefined;
 }
 
-export function CompletionMoment({ todoTitle, pomodoroCount, open, onDismiss, onAttach }: CompletionMomentProps) {
-  const isExploration = todoTitle === null;
+export function CompletionMoment({ todoTitle, pomodoroCount, open, onDismiss, onAttach, variant = 'session', timeSpan }: CompletionMomentProps) {
+  const isExploration = todoTitle === null && variant === 'session';
+  const isSeal = variant === 'seal';
 
-  // Auto-dismiss after 3 seconds (linked sessions only)
+  // Auto-dismiss after 3 seconds (linked sessions and seal variant)
   useEffect(() => {
     if (!open || isExploration) return;
     const timer = setTimeout(onDismiss, 3000);
@@ -49,7 +52,7 @@ export function CompletionMoment({ todoTitle, pomodoroCount, open, onDismiss, on
     <Dialog.Root open={open} modal={false}>
       <Dialog.Portal>
       <Dialog.Content
-        aria-label="Session complete"
+        aria-label={isSeal ? 'Todo sealed' : 'Session complete'}
         aria-live="assertive"
         aria-describedby={undefined}
         style={{
@@ -76,9 +79,11 @@ export function CompletionMoment({ todoTitle, pomodoroCount, open, onDismiss, on
             lineHeight: 1.5,
           }}
         >
-          {isExploration
-            ? `Exploration session — ${label}`
-            : `${todoTitle} — ${label} added`}
+          {isSeal
+            ? `${todoTitle} — ${label} across ${timeSpan}`
+            : isExploration
+              ? `Exploration session — ${label}`
+              : `${todoTitle} — ${label} added`}
         </Dialog.Title>
         {isExploration && (
           <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>

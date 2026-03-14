@@ -11,6 +11,8 @@ export { CompletionMoment } from './components/CompletionMoment.js';
 export type { CompletionMomentProps } from './components/CompletionMoment.js';
 export { DevotionDots } from './components/DevotionDots.js';
 export type { DevotionDotsProps } from './components/DevotionDots.js';
+export { DevotionRecord, computeTimeSpan } from './components/DevotionRecord.js';
+export type { DevotionRecordProps, DevotionRecordSession } from './components/DevotionRecord.js';
 export { ExplorationButton } from './components/ExplorationButton.js';
 export type { ExplorationButtonProps } from './components/ExplorationButton.js';
 export { CardPicker } from './components/CardPicker.js';

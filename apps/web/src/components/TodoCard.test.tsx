@@ -164,6 +164,45 @@ describe('TodoCard', () => {
     });
   });
 
+  describe('seal menu item', () => {
+    it('shows Seal menu item when sessionsCount > 0', () => {
+      renderTodoCard({ sessionsCount: 3, isMenuOpen: true });
+      expect(screen.getByText('Seal')).toBeTruthy();
+    });
+
+    it('hides Seal menu item when sessionsCount is 0', () => {
+      renderTodoCard({ sessionsCount: 0, isMenuOpen: true });
+      expect(screen.queryByText('Seal')).toBeNull();
+    });
+
+    it('calls onSeal with todoId when Seal is selected', () => {
+      const onSeal = vi.fn();
+      renderTodoCard({ sessionsCount: 2, isMenuOpen: true, onSeal, todoId: 'test-todo' });
+      fireEvent.click(screen.getByText('Seal'));
+      expect(onSeal).toHaveBeenCalledWith('test-todo');
+    });
+  });
+
+  describe('devotion record popover', () => {
+    it('opens Devotion Record popover when DevotionDots is clicked', () => {
+      const sessions = [
+        { sessionId: 's-1', startedAt: new Date('2026-03-01T10:00:00Z').getTime(), elapsedMs: 1500000 },
+      ];
+      renderTodoCard({ sessionsCount: 1, devotionSessions: sessions });
+      const dotsButton = screen.getByLabelText('Open Devotion Record');
+      fireEvent.click(dotsButton);
+      expect(screen.getByText(/First session:/)).toBeTruthy();
+    });
+
+    it('does not show popover when DevotionDots is not clicked', () => {
+      const sessions = [
+        { sessionId: 's-1', startedAt: new Date('2026-03-01T10:00:00Z').getTime(), elapsedMs: 1500000 },
+      ];
+      renderTodoCard({ sessionsCount: 1, devotionSessions: sessions });
+      expect(screen.queryByText(/First session:/)).toBeNull();
+    });
+  });
+
   describe('rename mode (double-click)', () => {
     it('enters rename mode on double-click of title', () => {
       renderTodoCard({ title: 'My todo' });

@@ -1,6 +1,6 @@
 # Story 4.1: DevotionDots — Compact Presence on the Card
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -18,28 +18,28 @@ So that I can feel the weight of my devotion at a glance without opening any pan
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Enhance DevotionDots to show empty slots (AC: #1, #2)
-  - [ ] 1.1 Open `packages/ui/src/components/DevotionDots.tsx` — current implementation renders only filled dots with no empty slots
-  - [ ] 1.2 Add a `maxVisible` prop (default: 5) that controls how many total slots are rendered; if `count > maxVisible`, render `count` filled dots (all filled, no empties)
-  - [ ] 1.3 For `count < maxVisible`: render `count` filled dots + `(maxVisible - count)` empty dots at `opacity: 0.25`
-  - [ ] 1.4 For `count === 0`: return `null` (no dots shown) — preserve existing behaviour
-  - [ ] 1.5 Keep dot size at 6px, gap at 4px, `marginTop: 6` — match existing layout
-  - [ ] 1.6 Empty dots use same `backgroundColor: 'var(--devotion)'` but with `opacity: 0.25`
+- [x] Task 1: Enhance DevotionDots to show empty slots (AC: #1, #2)
+  - [x] 1.1 Open `packages/ui/src/components/DevotionDots.tsx` — current implementation renders only filled dots with no empty slots
+  - [x] 1.2 Add a `maxVisible` prop (default: 5) that controls how many total slots are rendered; if `count > maxVisible`, render `count` filled dots (all filled, no empties)
+  - [x] 1.3 For `count < maxVisible`: render `count` filled dots + `(maxVisible - count)` empty dots at `opacity: 0.25`
+  - [x] 1.4 For `count === 0`: return `null` (no dots shown) — preserve existing behaviour
+  - [x] 1.5 Keep dot size at 6px, gap at 4px, `marginTop: 6` — match existing layout
+  - [x] 1.6 Empty dots use same `backgroundColor: 'var(--devotion)'` but with `opacity: 0.25`
 
-- [ ] Task 2: Verify WCAG contrast compliance (AC: #5)
-  - [ ] 2.1 Verify `--devotion` (`hsl(38, 80%, 58%)`) against `--surface` (`hsl(220, 14%, 13%)`) meets 3:1 ratio for UI components — use browser devtools contrast checker
-  - [ ] 2.2 Verify contrast in light theme: `--devotion` against light surface
-  - [ ] 2.3 If contrast fails, adjust `--devotion` lightness value in `apps/web/src/index.css` while preserving amber hue
+- [x] Task 2: Verify WCAG contrast compliance (AC: #5)
+  - [x] 2.1 Verify `--devotion` (`hsl(38, 80%, 58%)`) against `--surface` (`hsl(220, 14%, 13%)`) meets 3:1 ratio for UI components — use browser devtools contrast checker
+  - [x] 2.2 Verify contrast in light theme: `--devotion` against light surface
+  - [x] 2.3 If contrast fails, adjust `--devotion` lightness value in `apps/web/src/index.css` while preserving amber hue
 
-- [ ] Task 3: Update tests (AC: #1, #2, #3, #4)
-  - [ ] 3.1 Update `apps/web/src/components/DevotionDots.test.tsx`:
+- [x] Task 3: Update tests (AC: #1, #2, #3, #4)
+  - [x] 3.1 Update `apps/web/src/components/DevotionDots.test.tsx`:
     - Test: renders N filled dots + (maxVisible - N) empty dots when count < maxVisible
     - Test: renders N filled dots with zero empty dots when count >= maxVisible
     - Test: returns null when count is 0
     - Test: aria-label reads "N Pomodoros invested" with correct singular/plural
     - Test: filled dots have full opacity, empty dots have 0.25 opacity
-  - [ ] 3.2 Verify existing `TodoCard.test.tsx` still passes (DevotionDots rendered at line 216 of TodoCard.tsx)
-  - [ ] 3.3 Run full test suite: `turbo typecheck && turbo test && turbo build`
+  - [x] 3.2 Verify existing `TodoCard.test.tsx` still passes (DevotionDots rendered at line 216 of TodoCard.tsx)
+  - [x] 3.3 Run full test suite: `turbo typecheck && turbo test && turbo build`
 
 ## Dev Notes
 
@@ -86,9 +86,23 @@ apps/web/src/components/
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+None — clean implementation with no issues.
 
 ### Completion Notes List
+- Enhanced DevotionDots component with `maxVisible` prop (default: 5) to render empty slot placeholders at 0.25 opacity
+- When count >= maxVisible, all dots render as filled (no empty slots)
+- When count === 0, component returns null (preserved existing behaviour)
+- WCAG contrast check: dark theme passes (~8:1 ratio). Light theme failed (~1.9:1), fixed by adjusting light theme `--devotion` from `hsl(38, 80%, 58%)` to `hsl(38, 80%, 38%)` (~3.4:1 ratio)
+- Updated test suite from 7 to 10 tests covering empty slots, opacity, maxVisible override, and edge cases
+- All 316 tests pass, typecheck clean, build succeeds
+
+### Change Log
+- 2026-03-14: Implemented Story 4.1 — DevotionDots empty slot rendering, WCAG light theme fix, test updates
 
 ### File List
+- packages/ui/src/components/DevotionDots.tsx (modified)
+- apps/web/src/components/DevotionDots.test.tsx (modified)
+- apps/web/src/index.css (modified)

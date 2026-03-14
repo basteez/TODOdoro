@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handleDeclareTodo, handleRenameTodo, handlePositionTodo } from './todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo } from './todoCommands.js';
 import type { DomainEvent } from '@tododoro/domain';
 import { useCanvasStore } from '../stores/useCanvasStore.js';
 import {
@@ -293,6 +293,89 @@ describe('handlePositionTodo', () => {
     };
     await expect(
       handlePositionTodo(todoId, { x: 0, y: 0 }, failingStore, clock, idGenerator),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe('handleSealTodo', () => {
+  let eventStore: EventStore;
+  let clock: Clock;
+  let idGenerator: IdGenerator;
+
+  const todoId = 'todo-seal';
+  const declaredEvent: DomainEvent = {
+    eventType: 'TodoDeclared',
+    eventId: 'ev-1',
+    aggregateId: todoId,
+    schemaVersion: 1,
+    timestamp: 500,
+    title: 'My sealable todo',
+  };
+
+  beforeEach(() => {
+    resetStore();
+    clock = createMockClock();
+    idGenerator = createMockIdGenerator();
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+    };
+    useCanvasStore.getState().applyEvent(declaredEvent);
+  });
+
+  it('returns ok: true on success', async () => {
+    const result = await handleSealTodo(todoId, eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('appends a TodoSealedEvent to event store', async () => {
+    await handleSealTodo(todoId, eventStore, clock, idGenerator);
+
+    expect(eventStore.append).toHaveBeenCalledTimes(1);
+    const call = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(call.eventType).toBe('TodoSealed');
+    expect(call.aggregateId).toBe(todoId);
+  });
+
+  it('removes todo from canvas store items after seal', async () => {
+    await handleSealTodo(todoId, eventStore, clock, idGenerator);
+
+    const state = useCanvasStore.getState();
+    const todo = state.todos.items.find((t) => t.id === todoId);
+    expect(todo).toBeUndefined();
+  });
+
+  it('adds todo to shelf store after seal', async () => {
+    await handleSealTodo(todoId, eventStore, clock, idGenerator);
+
+    const state = useCanvasStore.getState();
+    const shelfItem = state.shelf.items.find((t) => t.id === todoId);
+    expect(shelfItem).toBeDefined();
+    expect(shelfItem!.lifecycleStatus).toBe('sealed');
+  });
+
+  it('returns ok: false when todo does not exist (no events)', async () => {
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() => Promise.resolve([])),
+    };
+    const result = await handleSealTodo('nonexistent', eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(eventStore.append).not.toHaveBeenCalled();
+  });
+
+  it('never throws — returns error as value', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+    await expect(
+      handleSealTodo(todoId, failingStore, clock, idGenerator),
     ).resolves.toBeDefined();
   });
 });

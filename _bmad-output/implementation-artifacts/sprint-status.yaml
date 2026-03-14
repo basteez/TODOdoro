@@ -75,10 +75,10 @@ development_status:
 
   # Epic 4: The Devotion Record
   epic-4: in-progress
-  4-1-devotiondots-compact-presence-on-the-card: ready-for-dev
-  4-2-full-devotion-record-timeline-popover: ready-for-dev
-  4-3-devotion-record-preserved-across-title-renames: ready-for-dev
-  4-4-completion-moment-on-todo-seal: ready-for-dev
+  4-1-devotiondots-compact-presence-on-the-card: done
+  4-2-full-devotion-record-timeline-popover: done
+  4-3-devotion-record-preserved-across-title-renames: done
+  4-4-completion-moment-on-todo-seal: done
   epic-4-retrospective: optional
 
   # Epic 5: Todo Lifecycle & The Shelf
