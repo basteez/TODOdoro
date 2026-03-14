@@ -71,14 +71,14 @@ development_status:
   3-5-durable-session-resume-within-window: done
   3-6-durable-session-auto-complete-beyond-window: done
   3-7-start-an-unlinked-exploration-session: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4: The Devotion Record
-  epic-4: backlog
-  4-1-devotiondots-compact-presence-on-the-card: backlog
-  4-2-full-devotion-record-timeline-popover: backlog
-  4-3-devotion-record-preserved-across-title-renames: backlog
-  4-4-completion-moment-on-todo-seal: backlog
+  epic-4: in-progress
+  4-1-devotiondots-compact-presence-on-the-card: ready-for-dev
+  4-2-full-devotion-record-timeline-popover: ready-for-dev
+  4-3-devotion-record-preserved-across-title-renames: ready-for-dev
+  4-4-completion-moment-on-todo-seal: ready-for-dev
   epic-4-retrospective: optional
 
   # Epic 5: Todo Lifecycle & The Shelf
