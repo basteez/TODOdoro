@@ -200,6 +200,46 @@ describe('projectDevotionRecord', () => {
       expect(record).toBeDefined();
       expect(record!.sessions).toHaveLength(1);
     });
+
+    it('does not create new record entries', () => {
+      const state = applyEvents([
+        makeSessionStarted('session-1', 'todo-1'),
+        makeSessionCompleted('session-1'),
+        makeTodoRenamed('todo-1', 'Renamed Todo'),
+      ]);
+      expect(state.records.size).toBe(1);
+    });
+
+    it('sessions accumulate correctly across multiple renames', () => {
+      const state = applyEvents([
+        makeSessionStarted('session-1', 'todo-1', BASE_TIMESTAMP),
+        makeSessionCompleted('session-1'),
+        makeTodoRenamed('todo-1', 'New Title'),
+        makeSessionStarted('session-2', 'todo-1', BASE_TIMESTAMP + 100_000),
+        makeSessionCompleted('session-2'),
+        makeTodoRenamed('todo-1', 'Another Title'),
+        makeSessionStarted('session-3', 'todo-1', BASE_TIMESTAMP + 200_000),
+        makeSessionCompleted('session-3'),
+      ]);
+      const record = state.records.get('todo-1');
+      expect(record).toBeDefined();
+      expect(record!.sessions).toHaveLength(3);
+      expect(state.records.size).toBe(1);
+    });
+
+    it('full replay after rename preserves devotion record', () => {
+      // Simulate replaying all events from event store
+      const events = [
+        makeSessionStarted('session-1', 'todo-1', BASE_TIMESTAMP),
+        makeSessionCompleted('session-1'),
+        makeTodoRenamed('todo-1', 'New Name After Session'),
+      ];
+      const state = events.reduce(projectDevotionRecord, INITIAL_DEVOTION_RECORD_STATE);
+      const record = state.records.get('todo-1');
+      expect(record).toBeDefined();
+      expect(record!.sessions).toHaveLength(1);
+      expect(record!.sessions[0]!.sessionId).toBe('session-1');
+    });
   });
 
   describe('default (unhandled events)', () => {

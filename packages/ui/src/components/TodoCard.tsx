@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import * as Popover from '@radix-ui/react-popover';
 import type { Node, NodeProps } from '@xyflow/react';
 import { DevotionDots } from './DevotionDots.js';
+import { DevotionRecord } from './DevotionRecord.js';
+import type { DevotionRecordSession } from './DevotionRecord.js';
 
 export type TodoCardData = {
   title: string;
@@ -11,11 +14,13 @@ export type TodoCardData = {
   isMenuOpen?: boolean;
   isSessionActive?: boolean;
   isActiveCard?: boolean;
+  devotionSessions?: ReadonlyArray<DevotionRecordSession>;
   onConfirm: (title: string) => void;
   onCancel: () => void;
   onRename: (newTitle: string) => void | Promise<void>;
   onMenuClose?: () => void;
   onStartSession?: (todoId: string) => void;
+  onSeal?: (todoId: string) => void;
   [key: string]: unknown;
 };
 
@@ -67,7 +72,8 @@ const dropdownItemStyle: React.CSSProperties = {
 };
 
 export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
-  const { title, todoId, sessionsCount, isEditing, isMenuOpen, isSessionActive, isActiveCard, onConfirm, onCancel, onRename, onMenuClose, onStartSession } = data;
+  const { title, todoId, sessionsCount, isEditing, isMenuOpen, isSessionActive, isActiveCard, devotionSessions, onConfirm, onCancel, onRename, onMenuClose, onStartSession, onSeal } = data;
+  const [devotionOpen, setDevotionOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -213,7 +219,37 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
       onDoubleClick={handleTitleDoubleClick}
     >
       <span>{title}</span>
-      {sessionsCount > 0 && <DevotionDots count={sessionsCount} />}
+      {sessionsCount > 0 && (
+        <Popover.Root open={devotionOpen} onOpenChange={setDevotionOpen}>
+          <Popover.Trigger asChild>
+            <span onMouseDown={(e) => e.stopPropagation()}>
+              <DevotionDots
+                count={sessionsCount}
+                onClick={() => setDevotionOpen((o) => !o)}
+              />
+            </span>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              sideOffset={8}
+              style={{
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--surface-border)',
+                borderRadius: 12,
+                zIndex: 50,
+                maxWidth: 320,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+              }}
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <DevotionRecord
+                sessions={devotionSessions ?? []}
+                todoTitle={title}
+              />
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+      )}
       <button
         aria-label={`Start session for ${title}`}
         disabled={isSessionActive}
@@ -272,6 +308,20 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
           >
             Rename
           </DropdownMenu.Item>
+          {sessionsCount > 0 && (
+            <DropdownMenu.Item
+              style={dropdownItemStyle}
+              onSelect={() => onSeal?.(todoId)}
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-border)';
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+              }}
+            >
+              Seal
+            </DropdownMenu.Item>
+          )}
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     </div>

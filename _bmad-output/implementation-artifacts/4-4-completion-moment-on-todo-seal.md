@@ -1,6 +1,6 @@
 # Story 4.4: Completion Moment on Todo Seal
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -18,132 +18,42 @@ So that the act of declaring something complete is honoured as a ceremony, not p
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `handleSealTodo` command handler (AC: #1, #5)
-  - [ ] 1.1 Add to `apps/web/src/commands/todoCommands.ts`:
-    ```typescript
-    export async function handleSealTodo(
-      todoId: string,
-      eventStore: EventStore,
-      clock: Clock,
-      idGenerator: IdGenerator,
-    ): Promise<Result> {
-      const events = await eventStore.readByAggregate(todoId);
-      const state = events.reduce(reduceTodo, INITIAL_TODO_STATE);
-      const event = sealTodo(state, clock, idGenerator);
-      if (event instanceof Error) return { ok: false, error: event.message };
-      await eventStore.append(event);
-      useCanvasStore.getState().applyEvent(event);
-      return { ok: true };
-    }
-    ```
-  - [ ] 1.2 Import `sealTodo` from `@tododoro/domain` (already exported)
-  - [ ] 1.3 Follow exact same pattern as `handleRenameTodo` and `handlePositionTodo`
+- [x] Task 1: Create `handleSealTodo` command handler (AC: #1, #5)
+  - [x] 1.1 Add `handleSealTodo` to `apps/web/src/commands/todoCommands.ts`
+  - [x] 1.2 Import `sealTodo` from `@tododoro/domain` (already exported)
+  - [x] 1.3 Follow exact same pattern as `handleRenameTodo` and `handlePositionTodo`
 
-- [ ] Task 2: Add "Seal" action to TodoCard dropdown menu (AC: #1)
-  - [ ] 2.1 Add `onSeal` callback to `TodoCardData` interface in `packages/ui/src/components/TodoCard.tsx`:
-    ```typescript
-    onSeal?: (todoId: string) => void;
-    ```
-  - [ ] 2.2 Add "Seal" item to the existing `DropdownMenu.Content` (after "Rename"):
-    ```tsx
-    <DropdownMenu.Item style={dropdownItemStyle} onSelect={() => onSeal?.(todoId)}>
-      Seal
-    </DropdownMenu.Item>
-    ```
-  - [ ] 2.3 Style: same `dropdownItemStyle` as "Rename" — no special colour, no icon
-  - [ ] 2.4 Only show "Seal" when `sessionsCount > 0` (cannot seal a todo with zero investment)
+- [x] Task 2: Add "Seal" action to TodoCard dropdown menu (AC: #1)
+  - [x] 2.1 Add `onSeal` callback to `TodoCardData` interface
+  - [x] 2.2 Add "Seal" item to existing `DropdownMenu.Content` (after "Rename")
+  - [x] 2.3 Style: same `dropdownItemStyle` as "Rename"
+  - [x] 2.4 Only show "Seal" when `sessionsCount > 0`
 
-- [ ] Task 3: Compute time span for CompletionMoment display (AC: #1, #3)
-  - [ ] 3.1 Create helper function in `packages/ui/src/components/DevotionRecord.tsx` or a shared util:
-    ```typescript
-    function computeTimeSpan(sessions: ReadonlyArray<{ startedAt: number }>): string {
-      if (sessions.length === 0) return '';
-      const firstDate = new Date(sessions[0].startedAt);
-      const lastDate = new Date(sessions[sessions.length - 1].startedAt);
-      const diffDays = Math.ceil((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      if (diffDays <= 1) return '1 day';
-      return `${diffDays} days`;
-    }
-    ```
-  - [ ] 3.2 Export this utility so it can be used by both DevotionRecord and the seal CompletionMoment
+- [x] Task 3: Compute time span for CompletionMoment display (AC: #1, #3)
+  - [x] 3.1 Created `computeTimeSpan` helper in `DevotionRecord.tsx`
+  - [x] 3.2 Exported utility from `@tododoro/ui`
 
-- [ ] Task 4: Enhance CompletionMoment for seal variant (AC: #1, #2, #3, #4)
-  - [ ] 4.1 The existing `CompletionMoment` already handles session completion. For seal, the display differs:
-    - Session completion: "[Todo title] — N Pomodoros added"
-    - **Seal**: "[Todo title] — N Pomodoros across D days"
-  - [ ] 4.2 Option A (recommended): Add a `variant` prop to CompletionMoment:
-    ```typescript
-    interface CompletionMomentProps {
-      todoTitle: string | null;
-      pomodoroCount: number;
-      open: boolean;
-      onDismiss: () => void;
-      onAttach?: (() => void) | undefined;
-      variant?: 'session' | 'seal';   // NEW
-      timeSpan?: string;               // NEW: e.g. "18 days"
-    }
-    ```
-  - [ ] 4.3 When `variant === 'seal'`: display "[todoTitle] — N Pomodoros across [timeSpan]"
-  - [ ] 4.4 Seal variant uses same auto-dismiss (3s), same any-keypress dismiss, same click-anywhere dismiss — identical behaviour to session completion
-  - [ ] 4.5 `prefers-reduced-motion`: already handled if CSS transitions are used; verify fade-in/out respects the media query. Currently CompletionMoment has no CSS transitions — appears/disappears instantly already. AC #4 is satisfied by default.
+- [x] Task 4: Enhance CompletionMoment for seal variant (AC: #1, #2, #3, #4)
+  - [x] 4.1 Added `variant` and `timeSpan` props
+  - [x] 4.2 Seal variant displays "[todoTitle] — N Pomodoros across [timeSpan]"
+  - [x] 4.3 Seal variant uses same auto-dismiss (3s) and dismiss-on-interaction
+  - [x] 4.4 Seal variant uses `aria-label="Todo sealed"` for accessibility
+  - [x] 4.5 `prefers-reduced-motion`: verified — no CSS animations, appears/disappears instantly
 
-- [ ] Task 5: Wire seal flow in App.tsx (AC: #1, #2, #5)
-  - [ ] 5.1 Import `handleSealTodo` in `apps/web/src/App.tsx`
-  - [ ] 5.2 Create `onSealCallback`:
-    ```typescript
-    const onSealCallback = useCallback(async (todoId: string) => {
-      const todo = todos.items.find((t) => t.id === todoId);
-      if (!todo) return;
-      const devotionRecord = useCanvasStore.getState().devotionRecord;
-      const record = devotionRecord.records.get(todoId);
-      const sessions = record?.sessions ?? [];
-      const timeSpan = computeTimeSpan(sessions);
-      const result = await handleSealTodo(todoId, eventStore, clock, idGenerator);
-      if (result.ok) {
-        setCompletionInfo({
-          todoTitle: todo.title,
-          pomodoroCount: todo.pomodoroCount,
-          sessionId: null,
-          variant: 'seal',
-          timeSpan,
-        });
-      }
-    }, [todos.items]);
-    ```
-  - [ ] 5.3 Update `completionInfo` state type to include `variant` and `timeSpan`:
-    ```typescript
-    { todoTitle: string | null; pomodoroCount: number; sessionId: string | null; variant?: 'session' | 'seal'; timeSpan?: string }
-    ```
-  - [ ] 5.4 Pass `onSeal={onSealCallback}` to each TodoCard node data in the mapping (lines 218-244)
-  - [ ] 5.5 Pass `variant` and `timeSpan` to CompletionMoment:
-    ```tsx
-    <CompletionMoment
-      todoTitle={completionInfo.todoTitle}
-      pomodoroCount={completionInfo.pomodoroCount}
-      open={true}
-      onDismiss={() => setCompletionInfo(null)}
-      onAttach={completionInfo.sessionId ? onAttachExplorationSession : undefined}
-      variant={completionInfo.variant ?? 'session'}
-      timeSpan={completionInfo.timeSpan}
-    />
-    ```
-  - [ ] 5.6 Card removal: after `handleSealTodo` succeeds, the `TodoSealedEvent` is applied via `useCanvasStore.applyEvent()` which calls `projectTodoList`. The `reduceTodo` function transitions the todo to `status: 'sealed'`, and `projectTodoList` removes sealed todos from `items[]`. The card disappears from the canvas automatically. **No additional removal code needed.**
+- [x] Task 5: Wire seal flow in App.tsx (AC: #1, #2, #5)
+  - [x] 5.1 Import `handleSealTodo` and `computeTimeSpan`
+  - [x] 5.2 Guard against sealing while session active for that todo
+  - [x] 5.3 Created `onSealCallback` — reads devotion data before sealing
+  - [x] 5.4 Updated `completionInfo` state type with `variant` and `timeSpan`
+  - [x] 5.5 Pass `onSeal={onSealCallback}` to each TodoCard
+  - [x] 5.6 Pass `variant` and `timeSpan` to CompletionMoment
+  - [x] 5.7 Card removal automatic via `projectTodoList` — no additional code needed
 
-- [ ] Task 6: Tests (AC: #1, #2, #3, #4, #5)
-  - [ ] 6.1 Add `handleSealTodo` tests in `apps/web/src/commands/todoCommands.test.ts` (create if needed):
-    - Test: successfully seals an active todo
-    - Test: returns error when sealing a non-active todo
-    - Test: updates canvas store — todo removed from items
-    - Test: updates shelf store — todo appears in shelf items
-  - [ ] 6.2 Update `CompletionMoment.test.tsx`:
-    - Test: seal variant displays "[title] — N Pomodoros across D days"
-    - Test: seal variant auto-dismisses after 3s
-    - Test: seal variant dismisses on keypress
-  - [ ] 6.3 Update `TodoCard.test.tsx`:
-    - Test: "Seal" menu item appears when sessionsCount > 0
-    - Test: "Seal" menu item hidden when sessionsCount === 0
-    - Test: onSeal callback called with todoId when "Seal" selected
-  - [ ] 6.4 Run full test suite: `turbo typecheck && turbo test && turbo build`
+- [x] Task 6: Tests (AC: #1, #2, #3, #4, #5)
+  - [x] 6.1 Added 6 `handleSealTodo` tests (success, error, store removal, shelf addition, nonexistent, no-throw)
+  - [x] 6.2 Added 3 CompletionMoment seal variant tests (display, auto-dismiss, aria-label)
+  - [x] 6.3 Added 3 TodoCard seal menu tests (show when sessions > 0, hide when 0, onSeal callback)
+  - [x] 6.4 Run full test suite: all 341 tests pass
 
 ## Dev Notes
 
@@ -213,9 +123,35 @@ apps/web/src/components/
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+- Fixed exactOptionalPropertyTypes TS error by adding `| undefined` to CompletionMoment's optional props
+- Fixed ShelfItem type assertion — field is `lifecycleStatus` not `badge`
 
 ### Completion Notes List
+- Created `handleSealTodo` command handler following existing pattern (read → reduce → decide → append → applyEvent)
+- Added `onSeal` prop and "Seal" menu item to TodoCard (only visible when sessionsCount > 0)
+- Created `computeTimeSpan` utility in DevotionRecord.tsx, exported from @tododoro/ui
+- Extended CompletionMoment with `variant: 'seal'` and `timeSpan` props — seal shows "[title] — N Pomodoros across D days"
+- Wired full seal flow in App.tsx with session-active guard, devotion data pre-read, and CompletionMoment integration
+- Card removal is automatic via `projectTodoList` removing sealed todos from items[]
+- Added 12 new tests: 6 for handleSealTodo, 3 for CompletionMoment seal variant, 3 for TodoCard seal menu
+- All 341 tests pass (158 domain + 175 web + 8 storage), typecheck clean, build succeeds
+
+### Change Log
+- 2026-03-14: Implemented Story 4.4 — handleSealTodo command, seal menu item, CompletionMoment seal variant, full wiring
+- 2026-03-14: [Code Review Fix] Fixed computeTimeSpan bug — was using raw ms diff instead of calendar days, causing wrong counts for same-day sessions. Added 6 tests for computeTimeSpan.
+- 2026-03-14: [Code Review Fix] Deferred seal event until CompletionMoment dismisses (AC #5 compliance) — card remains visible during ceremony, seal fires on dismiss.
 
 ### File List
+- apps/web/src/commands/todoCommands.ts (modified)
+- packages/ui/src/components/TodoCard.tsx (modified)
+- packages/ui/src/components/DevotionRecord.tsx (modified)
+- packages/ui/src/components/CompletionMoment.tsx (modified)
+- packages/ui/src/index.ts (modified)
+- apps/web/src/App.tsx (modified)
+- apps/web/src/commands/todoCommands.test.ts (modified)
+- apps/web/src/components/CompletionMoment.test.tsx (modified)
+- apps/web/src/components/TodoCard.test.tsx (modified)
+- apps/web/src/components/DevotionRecord.test.tsx (modified)
