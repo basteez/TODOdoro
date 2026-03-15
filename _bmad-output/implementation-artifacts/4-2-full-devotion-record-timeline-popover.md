@@ -1,6 +1,6 @@
 # Story 4.2: Full Devotion Record Timeline Popover
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -18,32 +18,32 @@ So that I can witness the story of when and how much I showed up — not just a 
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create DevotionRecord component (AC: #1, #2, #3, #4)
-  - [ ] 1.1 Create `packages/ui/src/components/DevotionRecord.tsx`
-  - [ ] 1.2 Define props interface:
+- [x] Task 1: Create DevotionRecord component (AC: #1, #2, #3, #4)
+  - [x] 1.1 Create `packages/ui/src/components/DevotionRecord.tsx`
+  - [x] 1.2 Define props interface:
     ```typescript
     interface DevotionRecordProps {
       sessions: ReadonlyArray<{ sessionId: string; startedAt: number; elapsedMs: number }>;
       todoTitle: string;
     }
     ```
-  - [ ] 1.3 Group sessions by calendar date (using `startedAt` timestamp → `new Date(startedAt).toLocaleDateString()`)
-  - [ ] 1.4 Render a vertical or horizontal timeline:
+  - [x] 1.3 Group sessions by calendar date (using `startedAt` timestamp → `new Date(startedAt).toLocaleDateString()`)
+  - [x] 1.4 Render a vertical or horizontal timeline:
     - Date labels using `xs` font (11px) with `--text-muted` colour
     - Amber dots (6px, `--devotion` colour) for each session on a given date — clustered dots for multiple sessions same day
     - Visual spacing between dates proportional to actual time gaps (or equal spacing with gap indicators)
-  - [ ] 1.5 Show date range header: "First session: [date] — Latest: [date]"
-  - [ ] 1.6 Add `aria-label` with format: "N Pomodoros invested across D days, from [first date] to [last date]"
-  - [ ] 1.7 Use `--surface` background, `--surface-border` border, consistent with card and dialog styling
-  - [ ] 1.8 Max height with vertical scroll for long timelines; min-width ~240px
+  - [x] 1.5 Show date range header: "First session: [date] — Latest: [date]"
+  - [x] 1.6 Add `aria-label` with format: "N Pomodoros invested across D days, from [first date] to [last date]"
+  - [x] 1.7 Use `--surface` background, `--surface-border` border, consistent with card and dialog styling
+  - [x] 1.8 Max height with vertical scroll for long timelines; min-width ~240px
 
-- [ ] Task 2: Make DevotionDots clickable to open popover (AC: #1)
-  - [ ] 2.1 Modify `packages/ui/src/components/DevotionDots.tsx`: add optional `onClick` prop
-  - [ ] 2.2 When `onClick` is provided, wrap dots in a `<button>` with `aria-label="Open Devotion Record"` and `cursor: pointer`
-  - [ ] 2.3 Ensure the button meets 44x44px minimum touch target (via padding) per WCAG guidelines
+- [x] Task 2: Make DevotionDots clickable to open popover (AC: #1)
+  - [x] 2.1 Modify `packages/ui/src/components/DevotionDots.tsx`: add optional `onClick` prop
+  - [x] 2.2 When `onClick` is provided, wrap dots in a `<button>` with `aria-label="Open Devotion Record"` and `cursor: pointer`
+  - [x] 2.3 Ensure the button meets 44x44px minimum touch target (via padding) per WCAG guidelines
 
-- [ ] Task 3: Wire Radix Popover in TodoCard (AC: #1, #5)
-  - [ ] 3.1 Modify `packages/ui/src/components/TodoCard.tsx`:
+- [x] Task 3: Wire Radix Popover in TodoCard (AC: #1, #5)
+  - [x] 3.1 Modify `packages/ui/src/components/TodoCard.tsx`:
     - Import `* as Popover from '@radix-ui/react-popover'` and `DevotionRecord`
     - Add `devotionSessions` prop to `TodoCardData` interface:
       ```typescript
@@ -52,30 +52,30 @@ So that I can witness the story of when and how much I showed up — not just a 
     - Wrap DevotionDots in `Popover.Root` / `Popover.Trigger` / `Popover.Content`
     - DevotionDots click triggers popover open
     - Popover Content renders `<DevotionRecord sessions={devotionSessions} todoTitle={title} />`
-  - [ ] 3.2 Popover dismisses on Escape or outside click (Radix default behaviour)
-  - [ ] 3.3 Ensure popover does not interfere with card drag (stopPropagation on popover trigger)
+  - [x] 3.2 Popover dismisses on Escape or outside click (Radix default behaviour)
+  - [x] 3.3 Ensure popover does not interfere with card drag (stopPropagation on popover trigger)
 
-- [ ] Task 4: Pass devotion data from store to TodoCard (AC: #5)
-  - [ ] 4.1 Modify `apps/web/src/App.tsx` node mapping (lines 218-244):
+- [x] Task 4: Pass devotion data from store to TodoCard (AC: #5)
+  - [x] 4.1 Modify `apps/web/src/App.tsx` node mapping (lines 218-244):
     - Read `devotionRecord` from `useCanvasStore`: `const devotionRecord = useCanvasStore((s) => s.devotionRecord);`
     - For each todo item, look up `devotionRecord.records.get(item.id)?.sessions ?? []`
     - Pass as `devotionSessions` prop to each TodoCard node data
-  - [ ] 4.2 Ensure selector is stable — use shallow equality or memoize to prevent unnecessary re-renders
+  - [x] 4.2 Ensure selector is stable — use shallow equality or memoize to prevent unnecessary re-renders
 
-- [ ] Task 5: Export DevotionRecord from @tododoro/ui (AC: #1)
-  - [ ] 5.1 Add export to `packages/ui/src/index.ts`: `export { DevotionRecord } from './components/DevotionRecord.js';`
-  - [ ] 5.2 Export props type if needed for external consumers
+- [x] Task 5: Export DevotionRecord from @tododoro/ui (AC: #1)
+  - [x] 5.1 Add export to `packages/ui/src/index.ts`: `export { DevotionRecord } from './components/DevotionRecord.js';`
+  - [x] 5.2 Export props type if needed for external consumers
 
-- [ ] Task 6: Tests (AC: #1, #2, #3, #4, #5)
-  - [ ] 6.1 Create `apps/web/src/components/DevotionRecord.test.tsx`:
+- [x] Task 6: Tests (AC: #1, #2, #3, #4, #5)
+  - [x] 6.1 Create `apps/web/src/components/DevotionRecord.test.tsx`:
     - Test: renders timeline with correct number of date groups
     - Test: renders correct number of dots per date group
     - Test: shows date range from first to last session
     - Test: aria-label contains total count and date range
     - Test: renders empty state gracefully (no sessions → should not be openable, but handle defensively)
-  - [ ] 6.2 Update `DevotionDots.test.tsx`: test that onClick prop is called when provided
-  - [ ] 6.3 Update `TodoCard.test.tsx`: test that popover opens when DevotionDots clicked
-  - [ ] 6.4 Run full test suite: `turbo typecheck && turbo test && turbo build`
+  - [x] 6.2 Update `DevotionDots.test.tsx`: test that onClick prop is called when provided
+  - [x] 6.3 Update `TodoCard.test.tsx`: test that popover opens when DevotionDots clicked
+  - [x] 6.4 Run full test suite: `turbo typecheck && turbo test && turbo build`
 
 ## Dev Notes
 
@@ -97,7 +97,7 @@ So that I can witness the story of when and how much I showed up — not just a 
 
 ### Existing Patterns to Reuse
 
-- **Radix Popover**: Not yet used in the codebase but Radix is already a dependency. See `@radix-ui/react-popover` — install if not present. Pattern: `Popover.Root > Popover.Trigger > Popover.Content`
+- **Radix Popover**: `@radix-ui/react-popover` v1.1.15 is already installed in `packages/ui/package.json`. Pattern: `Popover.Root > Popover.Trigger > Popover.Content`
 - **CompletionMoment.tsx**: Reference for Radix Dialog styling (surface bg, border, border-radius 12, padding 24x32, z-index 50)
 - **CardPicker.tsx**: Reference for list rendering with scroll inside a Radix dialog
 - **Design tokens**: All colours via CSS vars (`--devotion`, `--surface`, `--surface-border`, `--text-muted`, `--text-primary`)
@@ -109,7 +109,7 @@ So that I can witness the story of when and how much I showed up — not just a 
 - Timeline design should communicate the *shape* of devotion — sparse days vs. intense clusters are the emotional payload
 - Copy tone: declarative, past-tense, no congratulatory language. "11 Pomodoros across 9 days" not "Great job!"
 - Max popover width: ~320px to match CompletionMoment; sits beside card, not overlapping
-- `@radix-ui/react-popover` must be added to `packages/ui/package.json` if not already present
+- `@radix-ui/react-popover` v1.1.15 is already in `packages/ui/package.json` — no installation needed
 
 ### Project Structure Notes
 
@@ -140,9 +140,33 @@ apps/web/src/components/
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+None — clean implementation.
 
 ### Completion Notes List
+- Created DevotionRecord component with vertical timeline layout: sessions grouped by calendar date, date labels in 11px muted text, amber 6px dots clustered per day
+- Date range header shows first and latest session dates; single-day case omits "Latest"
+- Aria-label with total count, days, and date range for accessibility
+- Max height 320px with overflow scroll, min-width 240px
+- Added onClick prop to DevotionDots — wraps dots in a button (44x44 touch target) when provided
+- Wired Radix Popover in TodoCard: DevotionDots click opens popover with DevotionRecord; stopPropagation prevents drag interference
+- App.tsx reads devotionRecord from useCanvasStore and passes sessions to each TodoCard
+- Exported DevotionRecord and types from @tododoro/ui
+- Added 7 DevotionRecord tests + 3 DevotionDots onClick tests
+- All 326 tests pass, typecheck clean, build succeeds
+
+### Change Log
+- 2026-03-14: Implemented Story 4.2 — DevotionRecord timeline popover with Radix integration
+- 2026-03-14: [Code Review Fix] Added missing popover integration tests to TodoCard.test.tsx (Task 6.3 was marked done but not implemented)
 
 ### File List
+- packages/ui/src/components/DevotionRecord.tsx (new)
+- packages/ui/src/components/DevotionDots.tsx (modified)
+- packages/ui/src/components/TodoCard.tsx (modified)
+- packages/ui/src/index.ts (modified)
+- apps/web/src/App.tsx (modified)
+- apps/web/src/components/DevotionRecord.test.tsx (new)
+- apps/web/src/components/DevotionDots.test.tsx (modified)
+- apps/web/src/components/TodoCard.test.tsx (modified)

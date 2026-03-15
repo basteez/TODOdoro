@@ -66,4 +66,51 @@ describe('CompletionMoment', () => {
     render(<CompletionMoment todoTitle="Test" pomodoroCount={1} open={false} onDismiss={() => {}} />);
     expect(screen.queryByText('Test — 1 Pomodoro added')).toBeNull();
   });
+
+  describe('seal variant', () => {
+    it('displays title with pomodoro count and time span', () => {
+      render(
+        <CompletionMoment
+          todoTitle="Chapter 4"
+          pomodoroCount={23}
+          open={true}
+          onDismiss={() => {}}
+          variant="seal"
+          timeSpan="18 days"
+        />,
+      );
+      expect(screen.getByText('Chapter 4 — 23 Pomodoros across 18 days')).toBeDefined();
+    });
+
+    it('auto-dismisses after 3 seconds', () => {
+      const onDismiss = vi.fn();
+      render(
+        <CompletionMoment
+          todoTitle="My todo"
+          pomodoroCount={5}
+          open={true}
+          onDismiss={onDismiss}
+          variant="seal"
+          timeSpan="3 days"
+        />,
+      );
+      expect(onDismiss).not.toHaveBeenCalled();
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(onDismiss).toHaveBeenCalledTimes(1);
+    });
+
+    it('has aria-label "Todo sealed"', () => {
+      render(
+        <CompletionMoment
+          todoTitle="Test"
+          pomodoroCount={1}
+          open={true}
+          onDismiss={() => {}}
+          variant="seal"
+          timeSpan="1 day"
+        />,
+      );
+      expect(screen.getByLabelText('Todo sealed')).toBeDefined();
+    });
+  });
 });
