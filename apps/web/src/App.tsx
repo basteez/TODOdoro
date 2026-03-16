@@ -1,13 +1,13 @@
 import { Component, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
-import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker, computeTimeSpan } from '@tododoro/ui';
-import type { TodoCardData } from '@tododoro/ui';
+import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker, ReleaseRitual, ReleaseEulogy, ShelfDrawer, computeTimeSpan } from '@tododoro/ui';
+import type { TodoCardData, DevotionRecordSession } from '@tododoro/ui';
 import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
 import { JsonEventStore } from '@tododoro/storage';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
-import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo } from './commands/todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo, handleReleaseTodo } from './commands/todoCommands.js';
 import { handleStartSession, handleCompleteSession, handleAbandonSession, handleAttributeExplorationSession } from './commands/sessionCommands.js';
 import { useSessionTick } from './hooks/useSessionTick.js';
 import { SystemClock } from './adapters/SystemClock.js';
@@ -73,6 +73,8 @@ function CanvasInner() {
   const [completionInfo, setCompletionInfo] = useState<{ todoTitle: string | null; pomodoroCount: number; sessionId: string | null; variant?: 'session' | 'seal'; timeSpan?: string } | null>(null);
   const [showCardPicker, setShowCardPicker] = useState(false);
   const [pendingSealId, setPendingSealId] = useState<string | null>(null);
+  const [leavingCardId, setLeavingCardId] = useState<string | null>(null);
+  const [releaseTarget, setReleaseTarget] = useState<{ todoId: string; pomodoroCount: number; todoTitle: string; sessions: ReadonlyArray<DevotionRecordSession>; phase: 'eulogy' | 'ritual' } | null>(null);
   const dragDebounceRef = useRef<{ timeout: ReturnType<typeof setTimeout>; nodeId: string } | null>(null);
   const completionFiredRef = useRef(false);
 
@@ -235,10 +237,52 @@ function CanvasInner() {
     });
   }, [todos.items, isSessionActive, activeTodoId, pendingSealId]);
 
+  const onReleaseCallback = useCallback((todoId: string) => {
+    if (isSessionActive && activeTodoId === todoId) return;
+    const todo = todos.items.find((t) => t.id === todoId);
+    if (!todo) return;
+    const dr = useCanvasStore.getState().devotionRecord;
+    const record = dr.records.get(todoId);
+    const sessions = record?.sessions ?? [];
+    const phase = todo.pomodoroCount > 5 ? 'eulogy' as const : 'ritual' as const;
+    setReleaseTarget({ todoId, pomodoroCount: todo.pomodoroCount, todoTitle: todo.title, sessions, phase });
+  }, [todos.items, isSessionActive, activeTodoId]);
+
+  const handleReleaseSelect = useCallback((reason: 'completed_its_purpose' | 'was_never_truly_mine') => {
+    if (!releaseTarget) return;
+    const { todoId } = releaseTarget;
+    setReleaseTarget(null);
+    setLeavingCardId(todoId);
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const delay = reducedMotion ? 0 : 250;
+    setTimeout(async () => {
+      await handleReleaseTodo(todoId, reason, eventStore, clock, idGenerator);
+      setLeavingCardId(null);
+    }, delay);
+  }, [releaseTarget]);
+
+  const handleEulogyContinue = useCallback(() => {
+    if (!releaseTarget) return;
+    setReleaseTarget({ ...releaseTarget, phase: 'ritual' });
+  }, [releaseTarget]);
+
+  const handleReleaseCancel = useCallback(() => {
+    setReleaseTarget(null);
+  }, []);
+
   const handleCompletionDismiss = useCallback(async () => {
     if (pendingSealId) {
-      await handleSealTodo(pendingSealId, eventStore, clock, idGenerator);
+      setLeavingCardId(pendingSealId);
+      setCompletionInfo(null);
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const delay = reducedMotion ? 0 : 250;
+      const sealId = pendingSealId;
       setPendingSealId(null);
+      setTimeout(async () => {
+        await handleSealTodo(sealId, eventStore, clock, idGenerator);
+        setLeavingCardId(null);
+      }, delay);
+      return;
     }
     setCompletionInfo(null);
   }, [pendingSealId]);
@@ -258,6 +302,7 @@ function CanvasInner() {
           isMenuOpen: actionMenuNodeId === item.id,
           isSessionActive: isSessionActive && activeTodoId !== null,
           isActiveCard: activeTodoId === item.id,
+          isLeaving: leavingCardId === item.id,
           devotionSessions: devotionRecord.records.get(item.id)?.sessions ?? [],
           onConfirm: () => {},
           onCancel: () => {},
@@ -270,9 +315,10 @@ function CanvasInner() {
             }
           },
           onSeal: onSealCallback,
+          onRelease: onReleaseCallback,
         },
       })),
-    [todos.items, actionMenuNodeId, isSessionActive, activeTodoId, onStartSessionCallback, devotionRecord, onSealCallback],
+    [todos.items, actionMenuNodeId, isSessionActive, activeTodoId, leavingCardId, onStartSessionCallback, devotionRecord, onSealCallback, onReleaseCallback],
   );
 
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node<TodoCardData>>(todoNodes);
@@ -400,6 +446,23 @@ function CanvasInner() {
           timeSpan={completionInfo.timeSpan}
         />
       )}
+      {releaseTarget && releaseTarget.phase === 'eulogy' && (
+        <ReleaseEulogy
+          open={true}
+          todoTitle={releaseTarget.todoTitle}
+          pomodoroCount={releaseTarget.pomodoroCount}
+          sessions={releaseTarget.sessions}
+          onContinue={handleEulogyContinue}
+          onCancel={handleReleaseCancel}
+        />
+      )}
+      {releaseTarget && releaseTarget.phase === 'ritual' && (
+        <ReleaseRitual
+          open={true}
+          onSelect={handleReleaseSelect}
+          onCancel={handleReleaseCancel}
+        />
+      )}
       {showCardPicker && (
         <CardPicker
           open={true}
@@ -429,6 +492,9 @@ function CanvasInner() {
 
 function Canvas() {
   const isBooting = useCanvasStore((s) => s.isBooting);
+  const shelf = useCanvasStore((s) => s.shelf);
+  const devotionRecord = useCanvasStore((s) => s.devotionRecord);
+  const [isShelfOpen, setIsShelfOpen] = useState(false);
 
   if (isBooting) {
     return null;
@@ -439,8 +505,14 @@ function Canvas() {
       <ReactFlowProvider>
         <CanvasInner />
       </ReactFlowProvider>
-      <ShelfIcon />
+      <ShelfIcon onClick={() => setIsShelfOpen(true)} />
       <SettingsIcon />
+      <ShelfDrawer
+        open={isShelfOpen}
+        onClose={() => setIsShelfOpen(false)}
+        items={shelf.items}
+        devotionRecords={devotionRecord.records}
+      />
     </>
   );
 }

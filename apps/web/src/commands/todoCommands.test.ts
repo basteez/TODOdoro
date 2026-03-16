@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo } from './todoCommands.js';
+import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo, handleReleaseTodo } from './todoCommands.js';
 import type { DomainEvent } from '@tododoro/domain';
 import { useCanvasStore } from '../stores/useCanvasStore.js';
 import {
@@ -376,6 +376,115 @@ describe('handleSealTodo', () => {
     };
     await expect(
       handleSealTodo(todoId, failingStore, clock, idGenerator),
+    ).resolves.toBeDefined();
+  });
+});
+
+describe('handleReleaseTodo', () => {
+  let eventStore: EventStore;
+  let clock: Clock;
+  let idGenerator: IdGenerator;
+
+  const todoId = 'todo-release';
+  const declaredEvent: DomainEvent = {
+    eventType: 'TodoDeclared',
+    eventId: 'ev-1',
+    aggregateId: todoId,
+    schemaVersion: 1,
+    timestamp: 500,
+    title: 'My releasable todo',
+  };
+
+  beforeEach(() => {
+    resetStore();
+    clock = createMockClock();
+    idGenerator = createMockIdGenerator();
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+    };
+    useCanvasStore.getState().applyEvent(declaredEvent);
+  });
+
+  it('returns ok: true on success with completed_its_purpose', async () => {
+    const result = await handleReleaseTodo(todoId, 'completed_its_purpose', eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('returns ok: true on success with was_never_truly_mine', async () => {
+    const result = await handleReleaseTodo(todoId, 'was_never_truly_mine', eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: true });
+  });
+
+  it('appends a TodoReleasedEvent with correct reason to event store', async () => {
+    await handleReleaseTodo(todoId, 'completed_its_purpose', eventStore, clock, idGenerator);
+
+    expect(eventStore.append).toHaveBeenCalledTimes(1);
+    const call = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls[0]![0];
+    expect(call.eventType).toBe('TodoReleased');
+    expect(call.aggregateId).toBe(todoId);
+    expect(call.releaseReason).toBe('completed_its_purpose');
+  });
+
+  it('removes todo from canvas store items after release', async () => {
+    await handleReleaseTodo(todoId, 'was_never_truly_mine', eventStore, clock, idGenerator);
+
+    const state = useCanvasStore.getState();
+    const todo = state.todos.items.find((t) => t.id === todoId);
+    expect(todo).toBeUndefined();
+  });
+
+  it('adds todo to shelf store after release', async () => {
+    await handleReleaseTodo(todoId, 'completed_its_purpose', eventStore, clock, idGenerator);
+
+    const state = useCanvasStore.getState();
+    const shelfItem = state.shelf.items.find((t) => t.id === todoId);
+    expect(shelfItem).toBeDefined();
+    expect(shelfItem!.lifecycleStatus).toBe('released');
+    expect(shelfItem!.releaseReason).toBe('completed_its_purpose');
+  });
+
+  it('returns ok: false when todo is already sealed (non-active)', async () => {
+    const sealedEvent: DomainEvent = {
+      eventType: 'TodoSealed',
+      eventId: 'ev-seal',
+      aggregateId: todoId,
+      schemaVersion: 1,
+      timestamp: 600,
+    };
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent, sealedEvent]),
+      ),
+    };
+    const result = await handleReleaseTodo(todoId, 'completed_its_purpose', eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(eventStore.append).not.toHaveBeenCalled();
+  });
+
+  it('returns ok: false when todo does not exist (no events)', async () => {
+    eventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() => Promise.resolve([])),
+    };
+    const result = await handleReleaseTodo('nonexistent', 'completed_its_purpose', eventStore, clock, idGenerator);
+    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(eventStore.append).not.toHaveBeenCalled();
+  });
+
+  it('never throws — returns error as value', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      readByAggregate: vi.fn<EventStore['readByAggregate']>(() =>
+        Promise.resolve([declaredEvent]),
+      ),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+    await expect(
+      handleReleaseTodo(todoId, 'completed_its_purpose', failingStore, clock, idGenerator),
     ).resolves.toBeDefined();
   });
 });
