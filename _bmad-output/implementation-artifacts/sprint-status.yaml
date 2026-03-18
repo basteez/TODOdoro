@@ -82,12 +82,12 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Todo Lifecycle & The Shelf
-  epic-5: backlog
-  5-1-seal-a-todo: backlog
-  5-2-release-ritual-two-state-letting-go: backlog
-  5-3-release-eulogy-for-high-investment-todos: backlog
-  5-4-the-shelf-personal-archive: backlog
-  5-5-shelf-empty-state: backlog
+  epic-5: in-progress
+  5-1-seal-a-todo: done
+  5-2-release-ritual-two-state-letting-go: done
+  5-3-release-eulogy-for-high-investment-todos: done
+  5-4-the-shelf-personal-archive: done
+  5-5-shelf-empty-state: done
   epic-5-retrospective: optional
 
   # Epic 6: Production Storage & Data Durability

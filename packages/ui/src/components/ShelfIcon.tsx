@@ -17,11 +17,16 @@ const shelfIconStyle: React.CSSProperties = {
   padding: 0,
 };
 
-export function ShelfIcon() {
+export interface ShelfIconProps {
+  onClick?: (() => void) | undefined;
+}
+
+export function ShelfIcon({ onClick }: ShelfIconProps) {
   return (
     <button
       aria-label="Open shelf"
       style={shelfIconStyle}
+      onClick={onClick}
       onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '1')}
       onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '0.35')}
       onFocus={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '1')}

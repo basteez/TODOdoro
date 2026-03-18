@@ -183,6 +183,25 @@ describe('TodoCard', () => {
     });
   });
 
+  describe('release menu item', () => {
+    it('shows Release menu item when menu is open (always available)', () => {
+      renderTodoCard({ sessionsCount: 0, isMenuOpen: true });
+      expect(screen.getByText('Release')).toBeTruthy();
+    });
+
+    it('shows Release menu item even with sessions', () => {
+      renderTodoCard({ sessionsCount: 5, isMenuOpen: true });
+      expect(screen.getByText('Release')).toBeTruthy();
+    });
+
+    it('calls onRelease with todoId when Release is selected', () => {
+      const onRelease = vi.fn();
+      renderTodoCard({ isMenuOpen: true, onRelease, todoId: 'test-todo' });
+      fireEvent.click(screen.getByText('Release'));
+      expect(onRelease).toHaveBeenCalledWith('test-todo');
+    });
+  });
+
   describe('devotion record popover', () => {
     it('opens Devotion Record popover when DevotionDots is clicked', () => {
       const sessions = [
@@ -200,6 +219,32 @@ describe('TodoCard', () => {
       ];
       renderTodoCard({ sessionsCount: 1, devotionSessions: sessions });
       expect(screen.queryByText(/First session:/)).toBeNull();
+    });
+  });
+
+  describe('leaving animation (isLeaving)', () => {
+    it('applies leaving animation classes when isLeaving is true', () => {
+      const { container } = renderTodoCard({ isLeaving: true });
+      const card = container.firstElementChild as HTMLElement;
+      expect(card.className).toContain('opacity-0');
+      expect(card.className).toContain('translate-y-4');
+      expect(card.className).toContain('transition-all');
+      expect(card.className).toContain('duration-250');
+      expect(card.className).toContain('ease-in');
+    });
+
+    it('does not apply leaving classes when isLeaving is false', () => {
+      const { container } = renderTodoCard({ isLeaving: false });
+      const card = container.firstElementChild as HTMLElement;
+      expect(card.className).not.toContain('opacity-0');
+      expect(card.className).not.toContain('translate-y-4');
+    });
+
+    it('does not apply leaving classes when isLeaving is undefined', () => {
+      const { container } = renderTodoCard({});
+      const card = container.firstElementChild as HTMLElement;
+      expect(card.className).not.toContain('opacity-0');
+      expect(card.className).not.toContain('translate-y-4');
     });
   });
 

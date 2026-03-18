@@ -14,6 +14,7 @@ export type TodoCardData = {
   isMenuOpen?: boolean;
   isSessionActive?: boolean;
   isActiveCard?: boolean;
+  isLeaving?: boolean | undefined;
   devotionSessions?: ReadonlyArray<DevotionRecordSession>;
   onConfirm: (title: string) => void;
   onCancel: () => void;
@@ -21,6 +22,7 @@ export type TodoCardData = {
   onMenuClose?: () => void;
   onStartSession?: (todoId: string) => void;
   onSeal?: (todoId: string) => void;
+  onRelease?: ((todoId: string) => void) | undefined;
   [key: string]: unknown;
 };
 
@@ -72,7 +74,7 @@ const dropdownItemStyle: React.CSSProperties = {
 };
 
 export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
-  const { title, todoId, sessionsCount, isEditing, isMenuOpen, isSessionActive, isActiveCard, devotionSessions, onConfirm, onCancel, onRename, onMenuClose, onStartSession, onSeal } = data;
+  const { title, todoId, sessionsCount, isEditing, isMenuOpen, isSessionActive, isActiveCard, isLeaving, devotionSessions, onConfirm, onCancel, onRename, onMenuClose, onStartSession, onSeal, onRelease } = data;
   const [devotionOpen, setDevotionOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -213,7 +215,7 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
     <div
       ref={cardRef}
       style={activeCardStyle}
-      className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-session-active focus-visible:ring-offset-2${dragging ? ' scale-[1.02] shadow-lg' : ''}`}
+      className={`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-session-active focus-visible:ring-offset-2${dragging ? ' scale-[1.02] shadow-lg' : ''}${isLeaving ? ' opacity-0 translate-y-4 transition-all duration-250 ease-in' : ''}`}
       aria-label={`${title}, ${sessionsCount} Pomodoro${sessionsCount !== 1 ? 's' : ''} invested, ${isActiveCard ? 'active session' : 'idle'}`}
       tabIndex={0}
       onDoubleClick={handleTitleDoubleClick}
@@ -322,6 +324,18 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
               Seal
             </DropdownMenu.Item>
           )}
+          <DropdownMenu.Item
+            style={dropdownItemStyle}
+            onSelect={() => onRelease?.(todoId)}
+            onMouseOver={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-border)';
+            }}
+            onMouseOut={(e) => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+            }}
+          >
+            Release
+          </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     </div>
