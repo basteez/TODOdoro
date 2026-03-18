@@ -220,7 +220,7 @@ export function TodoCard({ data, dragging }: NodeProps<TodoCardNode>) {
       tabIndex={0}
       onDoubleClick={handleTitleDoubleClick}
     >
-      <span>{title}</span>
+      <span style={{ paddingRight: 36 }}>{title}</span>
       {sessionsCount > 0 && (
         <Popover.Root open={devotionOpen} onOpenChange={setDevotionOpen}>
           <Popover.Trigger asChild>
