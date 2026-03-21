@@ -82,17 +82,17 @@ development_status:
   epic-4-retrospective: done
 
   # Epic 5: Todo Lifecycle & The Shelf
-  epic-5: in-progress
+  epic-5: done
   5-1-seal-a-todo: done
   5-2-release-ritual-two-state-letting-go: done
   5-3-release-eulogy-for-high-investment-todos: done
   5-4-the-shelf-personal-archive: done
   5-5-shelf-empty-state: done
-  epic-5-retrospective: optional
+  epic-5-retrospective: done
 
   # Epic 6: Production Storage & Data Durability
-  epic-6: backlog
-  6-1-sqlite-event-store-with-drizzle-schema: backlog
+  epic-6: in-progress
+  6-1-sqlite-event-store-with-drizzle-schema: done
   6-2-atomic-event-writes-and-boot-sequence-wiring: backlog
   6-3-tolerant-boot-from-corrupted-or-incomplete-event-log: backlog
   6-4-schema-migration-and-event-versioning: backlog

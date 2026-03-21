@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  worker: {
+    format: 'es',
+  },
   server: {
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
