@@ -4,7 +4,7 @@ import { JsonEventStore, SqliteEventStore } from '@tododoro/storage';
 /** Which storage backend was selected on boot. */
 export let activeStoreType: 'sqlite' | 'json' = 'json';
 
-const INIT_TIMEOUT_MS = 3_000;
+const INIT_TIMEOUT_MS = 1_000;
 
 export async function createEventStore(): Promise<EventStore> {
   if (typeof navigator !== 'undefined' && 'storage' in navigator) {
