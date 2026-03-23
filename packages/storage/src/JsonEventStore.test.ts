@@ -62,6 +62,12 @@ describe('JsonEventStore', () => {
       expect(events[0]).toEqual(event);
     });
 
+    it('rejects duplicate eventId', async () => {
+      const event = makeTodoDeclared('todo-1');
+      await store.append(event);
+      await expect(store.append({ ...event, title: 'Different' })).rejects.toThrow('UNIQUE constraint failed');
+    });
+
     it('appends multiple events in order', async () => {
       const event1 = makeTodoDeclared('todo-1');
       const event2 = makeTodoDeclared('todo-2');

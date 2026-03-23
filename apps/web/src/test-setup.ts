@@ -1,10 +1,13 @@
-import { afterEach, beforeEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import { JsonEventStore } from '@tododoro/storage';
-import { _setEventStoreForTest } from './db.js';
 
-beforeEach(() => {
-  _setEventStoreForTest(new JsonEventStore());
+vi.mock('./db.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./db.js')>();
+  return {
+    ...actual,
+    getEventStore: () => new JsonEventStore(),
+  };
 });
 
 afterEach(() => {
