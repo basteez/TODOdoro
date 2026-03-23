@@ -1,9 +1,6 @@
 import type { EventStore } from '@tododoro/domain';
 import { JsonEventStore, SqliteEventStore } from '@tododoro/storage';
 
-/** Which storage backend was selected on boot. */
-export let activeStoreType: 'sqlite' | 'json' = 'json';
-
 let _eventStore: EventStore | null = null;
 
 /**
@@ -15,11 +12,6 @@ export function getEventStore(): EventStore {
   return _eventStore;
 }
 
-/** @internal Test-only: inject an event store without async initialization. */
-export function _setEventStoreForTest(store: EventStore): void {
-  _eventStore = store;
-}
-
 export async function createEventStore(): Promise<EventStore> {
   if (typeof navigator !== 'undefined' && 'storage' in navigator) {
     try {
@@ -27,17 +19,15 @@ export async function createEventStore(): Promise<EventStore> {
       // SQLocal's opfs-sahpool VFS does NOT require SharedArrayBuffer, so it
       // works without COOP/COEP — but the headers are expected for CSP compliance.
       if (!crossOriginIsolated) {
-        // Headers not configured — OPFS still works via opfs-sahpool VFS,
-        // but this indicates a deployment configuration gap.
+        console.warn('[tododoro] Cross-Origin Isolation headers (COOP/COEP) not detected — OPFS may still work via opfs-sahpool VFS, but this indicates a deployment configuration gap.');
       }
 
       const store = new SqliteEventStore('tododoro.sqlite3');
       await store.initialize();
-      activeStoreType = 'sqlite';
       _eventStore = store;
       return store;
-    } catch {
-      // OPFS not available — fall back to localStorage.
+    } catch (error) {
+      console.warn('[tododoro] SQLite/OPFS init failed, falling back to localStorage:', error);
     }
   }
   const fallback = new JsonEventStore();

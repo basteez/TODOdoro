@@ -54,7 +54,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 function CanvasInner() {
-  const eventStore = getEventStore();
+  const eventStore = useMemo(getEventStore, []);
   const isBooting = useCanvasStore((s) => s.isBooting);
   const todos = useCanvasStore((s) => s.todos);
   const devotionRecord = useCanvasStore((s) => s.devotionRecord);

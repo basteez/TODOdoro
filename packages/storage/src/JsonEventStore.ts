@@ -5,6 +5,9 @@ const STORAGE_KEY = 'tododoro:events';
 export class JsonEventStore implements EventStore {
   async append(event: DomainEvent): Promise<void> {
     const existing = this.readFromStorage();
+    if (existing.some(e => e.eventId === event.eventId)) {
+      throw new Error(`UNIQUE constraint failed: duplicate eventId ${event.eventId}`);
+    }
     existing.push(event);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
   }

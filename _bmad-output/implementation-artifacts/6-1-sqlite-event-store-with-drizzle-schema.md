@@ -222,6 +222,7 @@ Claude Opus 4.6 (1M context)
 
 - 2026-03-21: Implemented Story 6.1 — SQLite Event Store with Drizzle Schema. Added SQLocal + Drizzle ORM dependencies, created schema.ts, SqliteEventStore.ts, db.ts, wired boot sequence, added 10 unit tests, fixed Vite worker format for production builds.
 - 2026-03-21: Code review fixes — Added `crossOriginIsolated` check to db.ts (AC#4), added `destroy()` method to SqliteEventStore for Web Worker cleanup, documented schema.ts/raw-SQL coupling, improved test mock robustness, added destroy test (11 total).
+- 2026-03-23: Bug fix #21 — App.tsx was using a disconnected JsonEventStore; switched to shared singleton via `getEventStore()` from db.ts. Code review fixes: added console.warn for SQLite fallback, removed dead `activeStoreType` export, memoized eventStore in CanvasInner, removed `_setEventStoreForTest` from production API, added duplicate eventId rejection to JsonEventStore (+1 test, 416 total).
 
 ### File List
 
@@ -229,11 +230,15 @@ Claude Opus 4.6 (1M context)
 - `packages/storage/src/schema.ts` — Drizzle table definition for `events` (type-safe reference)
 - `packages/storage/src/SqliteEventStore.ts` — SQLocal-backed EventStore implementation
 - `packages/storage/src/SqliteEventStore.test.ts` — 11-test suite for SqliteEventStore
-- `apps/web/src/db.ts` — Database initialization with OPFS feature detection + fallback
+- `apps/web/src/db.ts` — Database initialization with OPFS feature detection + fallback + singleton
 
 **Modified files:**
 - `packages/storage/package.json` — Added `sqlocal` and `drizzle-orm` dependencies
 - `packages/storage/src/index.ts` — Added SqliteEventStore export
+- `packages/storage/src/JsonEventStore.ts` — Added duplicate eventId rejection
+- `packages/storage/src/JsonEventStore.test.ts` — Added duplicate rejection test
 - `apps/web/src/main.tsx` — Replaced direct `JsonEventStore` with `createEventStore()` from db.ts
+- `apps/web/src/App.tsx` — Replaced hardcoded JsonEventStore with shared singleton via `getEventStore()`
+- `apps/web/src/test-setup.ts` — Mock db.ts `getEventStore` for tests
 - `apps/web/vite.config.ts` — Added `worker: { format: 'es' }` for SQLocal's Web Worker bundling
 - `pnpm-lock.yaml` — Updated lock file
