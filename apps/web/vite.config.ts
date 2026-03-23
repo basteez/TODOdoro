@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import sqlocal from 'sqlocal/vite';
 
 export default defineConfig({
-  plugins: [tailwindcss(), react()],
-  worker: {
-    format: 'es',
-  },
+  plugins: [tailwindcss(), react(), sqlocal({ coi: false })],
   server: {
     headers: {
       'Cross-Origin-Embedder-Policy': 'require-corp',
