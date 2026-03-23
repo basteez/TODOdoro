@@ -4,6 +4,22 @@ import { JsonEventStore, SqliteEventStore } from '@tododoro/storage';
 /** Which storage backend was selected on boot. */
 export let activeStoreType: 'sqlite' | 'json' = 'json';
 
+let _eventStore: EventStore | null = null;
+
+/**
+ * Returns the event store singleton created during bootstrap.
+ * Must be called after `createEventStore()` has resolved.
+ */
+export function getEventStore(): EventStore {
+  if (!_eventStore) throw new Error('Event store not initialized — call createEventStore() first');
+  return _eventStore;
+}
+
+/** @internal Test-only: inject an event store without async initialization. */
+export function _setEventStoreForTest(store: EventStore): void {
+  _eventStore = store;
+}
+
 export async function createEventStore(): Promise<EventStore> {
   if (typeof navigator !== 'undefined' && 'storage' in navigator) {
     try {
@@ -18,10 +34,13 @@ export async function createEventStore(): Promise<EventStore> {
       const store = new SqliteEventStore('tododoro.sqlite3');
       await store.initialize();
       activeStoreType = 'sqlite';
+      _eventStore = store;
       return store;
     } catch {
       // OPFS not available — fall back to localStorage.
     }
   }
-  return new JsonEventStore();
+  const fallback = new JsonEventStore();
+  _eventStore = fallback;
+  return fallback;
 }
