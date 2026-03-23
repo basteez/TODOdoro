@@ -12,7 +12,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@tododoro/domain": "workspace:*"
+    "@tododoro/domain": "workspace:*",
+    "drizzle-orm": "^0.44.0",
+    "sqlocal": "^0.17.0"
   },
   "devDependencies": {
     "@tododoro/typescript-config": "workspace:*",

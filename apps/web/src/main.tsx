@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { JsonEventStore } from '@tododoro/storage';
+import { createEventStore } from './db.js';
 import {
   repairEvents,
   projectTodoList,
@@ -21,7 +21,7 @@ import { App } from './App.js';
 import './index.css';
 
 async function bootstrap() {
-  const eventStore = new JsonEventStore();
+  const eventStore = await createEventStore();
   const clock = new SystemClock();
   const idGenerator = new CryptoIdGenerator();
 

@@ -4,7 +4,7 @@ import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, Setting
 import type { TodoCardData, DevotionRecordSession } from '@tododoro/ui';
 import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
-import { JsonEventStore } from '@tododoro/storage';
+import { getEventStore } from './db.js';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
 import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo, handleReleaseTodo } from './commands/todoCommands.js';
@@ -13,7 +13,6 @@ import { useSessionTick } from './hooks/useSessionTick.js';
 import { SystemClock } from './adapters/SystemClock.js';
 import { CryptoIdGenerator } from './adapters/CryptoIdGenerator.js';
 
-const eventStore = new JsonEventStore();
 const clock = new SystemClock();
 const idGenerator = new CryptoIdGenerator();
 
@@ -55,6 +54,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 function CanvasInner() {
+  const eventStore = getEventStore();
   const isBooting = useCanvasStore((s) => s.isBooting);
   const todos = useCanvasStore((s) => s.todos);
   const devotionRecord = useCanvasStore((s) => s.devotionRecord);
