@@ -142,6 +142,35 @@ describe('handleStartSession', () => {
       handleStartSession('todo-1', failingStore, clock, idGenerator),
     ).resolves.toBeDefined();
   });
+
+  it('does NOT update session store when append() rejects (NFR10 atomicity)', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+
+    const result = await handleStartSession('todo-1', failingStore, clock, idGenerator);
+
+    expect(result).toEqual({ ok: false, error: 'Storage failed' });
+    // Session store must remain idle — timer never starts
+    const session = useSessionStore.getState().activeSession;
+    expect(session.status).toBe('idle');
+  });
+
+  it('does NOT update canvas store when append() rejects', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+
+    const devotionBefore = useCanvasStore.getState().devotionRecord;
+
+    await handleStartSession('todo-1', failingStore, clock, idGenerator);
+
+    // Canvas store devotion record must be unchanged
+    const devotionAfter = useCanvasStore.getState().devotionRecord;
+    expect(devotionAfter).toEqual(devotionBefore);
+  });
 });
 
 describe('handleCompleteSession', () => {

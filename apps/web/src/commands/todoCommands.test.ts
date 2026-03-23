@@ -125,6 +125,42 @@ describe('handleDeclareTodo', () => {
       handleDeclareTodo('Test', { x: 0, y: 0 }, failingStore, clock, idGenerator),
     ).resolves.toBeDefined();
   });
+
+  it('does NOT call applyEvent when first append() rejects (atomicity)', async () => {
+    const failingStore: EventStore = {
+      ...createMockEventStore(),
+      append: () => Promise.reject(new Error('Storage failed')),
+    };
+
+    const result = await handleDeclareTodo('Test', { x: 0, y: 0 }, failingStore, clock, idGenerator);
+
+    expect(result).toEqual({ ok: false, error: 'Storage failed' });
+    // Canvas store must remain empty — no todo was added
+    expect(useCanvasStore.getState().todos.items).toHaveLength(0);
+  });
+
+  it('applies first event but NOT second when second append() rejects (partial failure)', async () => {
+    let appendCallCount = 0;
+    const partialFailStore: EventStore = {
+      ...createMockEventStore(),
+      append: vi.fn(() => {
+        appendCallCount++;
+        if (appendCallCount === 2) {
+          return Promise.reject(new Error('Second write failed'));
+        }
+        return Promise.resolve();
+      }),
+    };
+
+    const result = await handleDeclareTodo('Test', { x: 100, y: 200 }, partialFailStore, clock, idGenerator);
+
+    expect(result).toEqual({ ok: false, error: 'Second write failed' });
+    // First event (TodoDeclared) was persisted and applied
+    expect(useCanvasStore.getState().todos.items).toHaveLength(1);
+    expect(useCanvasStore.getState().todos.items[0]!.title).toBe('Test');
+    // But position was NOT applied (second event failed)
+    expect(useCanvasStore.getState().todos.items[0]!.position).toEqual({ x: 0, y: 0 });
+  });
 });
 
 describe('handleRenameTodo', () => {
