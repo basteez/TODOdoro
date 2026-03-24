@@ -25,37 +25,48 @@ async function bootstrap() {
   const clock = new SystemClock();
   const idGenerator = new CryptoIdGenerator();
 
-  const allEvents = await eventStore.readAll();
-  const repairedEvents = repairEvents(allEvents, clock, idGenerator);
+  let todoListState = INITIAL_TODO_LIST_STATE;
+  let shelfState = INITIAL_SHELF_STATE;
+  let devotionState = INITIAL_DEVOTION_RECORD_STATE;
+  let sessionState = INITIAL_ACTIVE_SESSION_STATE;
 
-  // Persist any events synthesized by the repair pipeline (e.g. auto-completed orphaned sessions)
-  const originalEventIds = new Set(allEvents.map((e) => e.eventId));
-  const synthesizedEvents = repairedEvents.filter((e) => !originalEventIds.has(e.eventId));
-  for (const event of synthesizedEvents) {
-    await eventStore.append(event);
-  }
+  try {
+    const allEvents = await eventStore.readAll();
+    const repairedEvents = repairEvents(allEvents, clock, idGenerator);
 
-  const lastSnapshot = [...repairedEvents]
-    .reverse()
-    .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated');
+    // Persist any events synthesized by the repair pipeline (e.g. auto-completed orphaned sessions).
+    // If persisting a synthesized event fails, skip it — it will be re-created on next boot.
+    const originalEventIds = new Set(allEvents.map((e) => e.eventId));
+    const synthesizedEvents = repairedEvents.filter((e) => !originalEventIds.has(e.eventId));
+    for (const event of synthesizedEvents) {
+      try { await eventStore.append(event); } catch { /* skip — re-created on next boot */ }
+    }
 
-  let todoListState;
-  let shelfState;
-  let devotionState;
-  let sessionState;
+    const lastSnapshot = [...repairedEvents]
+      .reverse()
+      .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated');
 
-  if (lastSnapshot) {
-    const snapshotIndex = repairedEvents.indexOf(lastSnapshot);
-    const eventsAfterSnapshot = repairedEvents.slice(snapshotIndex + 1);
-    todoListState = eventsAfterSnapshot.reduce(projectTodoList, lastSnapshot.snapshotState.todoList);
-    shelfState = eventsAfterSnapshot.reduce(projectShelf, lastSnapshot.snapshotState.shelf);
-    devotionState = eventsAfterSnapshot.reduce(projectDevotionRecord, lastSnapshot.snapshotState.devotionRecord);
-    sessionState = eventsAfterSnapshot.reduce(projectActiveSession, lastSnapshot.snapshotState.activeSession);
-  } else {
-    todoListState = repairedEvents.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
-    shelfState = repairedEvents.reduce(projectShelf, INITIAL_SHELF_STATE);
-    devotionState = repairedEvents.reduce(projectDevotionRecord, INITIAL_DEVOTION_RECORD_STATE);
-    sessionState = repairedEvents.reduce(projectActiveSession, INITIAL_ACTIVE_SESSION_STATE);
+    if (lastSnapshot) {
+      const snapshotIndex = repairedEvents.indexOf(lastSnapshot);
+      const eventsAfterSnapshot = repairedEvents.slice(snapshotIndex + 1);
+      todoListState = eventsAfterSnapshot.reduce(projectTodoList, lastSnapshot.snapshotState.todoList);
+      shelfState = eventsAfterSnapshot.reduce(projectShelf, lastSnapshot.snapshotState.shelf);
+      devotionState = eventsAfterSnapshot.reduce(projectDevotionRecord, lastSnapshot.snapshotState.devotionRecord);
+      sessionState = eventsAfterSnapshot.reduce(projectActiveSession, lastSnapshot.snapshotState.activeSession);
+    } else {
+      todoListState = repairedEvents.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
+      shelfState = repairedEvents.reduce(projectShelf, INITIAL_SHELF_STATE);
+      devotionState = repairedEvents.reduce(projectDevotionRecord, INITIAL_DEVOTION_RECORD_STATE);
+      sessionState = repairedEvents.reduce(projectActiveSession, INITIAL_ACTIVE_SESSION_STATE);
+    }
+  } catch {
+    // Fall back to initial state — canvas renders empty rather than crashing.
+    // Re-assignment is necessary: partial execution may have modified some state
+    // vars (e.g., todoListState updated before shelfState reduce throws).
+    todoListState = INITIAL_TODO_LIST_STATE;
+    shelfState = INITIAL_SHELF_STATE;
+    devotionState = INITIAL_DEVOTION_RECORD_STATE;
+    sessionState = INITIAL_ACTIVE_SESSION_STATE;
   }
 
   useCanvasStore.getState().bootstrap(todoListState, shelfState, devotionState);
