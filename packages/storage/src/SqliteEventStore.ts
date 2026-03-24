@@ -43,7 +43,10 @@ export class SqliteEventStore implements EventStore {
     const rows = await this.db.sql<{ payload: string }>`
       SELECT payload FROM events ORDER BY seq ASC
     `;
-    return rows.map((row) => JSON.parse(row.payload) as DomainEvent);
+    return rows.flatMap((row) => {
+      try { return [JSON.parse(row.payload) as DomainEvent]; }
+      catch { return []; }
+    });
   }
 
   async readByAggregate(aggregateId: string): Promise<readonly DomainEvent[]> {
@@ -52,7 +55,10 @@ export class SqliteEventStore implements EventStore {
       WHERE aggregate_id = ${aggregateId}
       ORDER BY seq ASC
     `;
-    return rows.map((row) => JSON.parse(row.payload) as DomainEvent);
+    return rows.flatMap((row) => {
+      try { return [JSON.parse(row.payload) as DomainEvent]; }
+      catch { return []; }
+    });
   }
 
   async destroy(): Promise<void> {

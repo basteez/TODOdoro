@@ -231,6 +231,104 @@ describe('SqliteEventStore', () => {
     });
   });
 
+  describe('tolerant JSON parsing', () => {
+    it('readAll skips malformed JSON rows and returns only valid events', async () => {
+      const validEvent = makeTodoDeclared('todo-1');
+      await store.append(validEvent);
+
+      // Insert a row with malformed JSON directly into mock storage
+      mockSeqCounter++;
+      mockRows.push({
+        seq: mockSeqCounter,
+        event_id: 'corrupted-1',
+        event_type: 'Unknown',
+        aggregate_id: 'todo-corrupted',
+        schema_version: 1,
+        timestamp: 1_000_000,
+        payload: '{truncated',
+      });
+
+      const events = await store.readAll();
+      expect(events).toHaveLength(1);
+      expect(events[0]).toEqual(validEvent);
+    });
+
+    it('readAll returns empty array when ALL rows have malformed JSON', async () => {
+      mockSeqCounter++;
+      mockRows.push({
+        seq: mockSeqCounter,
+        event_id: 'corrupted-1',
+        event_type: 'Unknown',
+        aggregate_id: 'todo-1',
+        schema_version: 1,
+        timestamp: 1_000_000,
+        payload: '{truncated',
+      });
+
+      mockSeqCounter++;
+      mockRows.push({
+        seq: mockSeqCounter,
+        event_id: 'corrupted-2',
+        event_type: 'Unknown',
+        aggregate_id: 'todo-2',
+        schema_version: 1,
+        timestamp: 2_000_000,
+        payload: 'not json at all',
+      });
+
+      const events = await store.readAll();
+      expect(events).toEqual([]);
+    });
+
+    it('readByAggregate returns empty array when ALL matching rows have malformed JSON', async () => {
+      mockSeqCounter++;
+      mockRows.push({
+        seq: mockSeqCounter,
+        event_id: 'corrupted-1',
+        event_type: 'Unknown',
+        aggregate_id: 'todo-1',
+        schema_version: 1,
+        timestamp: 1_000_000,
+        payload: '{truncated',
+      });
+
+      mockSeqCounter++;
+      mockRows.push({
+        seq: mockSeqCounter,
+        event_id: 'corrupted-2',
+        event_type: 'Unknown',
+        aggregate_id: 'todo-1',
+        schema_version: 1,
+        timestamp: 2_000_000,
+        payload: 'not json at all',
+      });
+
+      const events = await store.readByAggregate('todo-1');
+      expect(events).toEqual([]);
+    });
+
+    it('readByAggregate skips malformed JSON rows and returns only valid events', async () => {
+      const validEvent = makeTodoDeclared('todo-1');
+      await store.append(validEvent);
+
+      // Insert a corrupted row for the same aggregate
+      mockSeqCounter++;
+      mockRows.push({
+        seq: mockSeqCounter,
+        event_id: 'corrupted-1',
+        event_type: 'Unknown',
+        aggregate_id: 'todo-1',
+        schema_version: 1,
+        timestamp: 2_000_000,
+        payload: '{truncated',
+      });
+
+      const events = await store.readByAggregate('todo-1');
+      expect(events).toHaveLength(1);
+      expect(events[0]).toEqual(validEvent);
+    });
+  });
+
   describe('destroy', () => {
     it('tears down the SQLocal instance', async () => {
       await store.destroy();

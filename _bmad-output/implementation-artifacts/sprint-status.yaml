@@ -94,7 +94,7 @@ development_status:
   epic-6: in-progress
   6-1-sqlite-event-store-with-drizzle-schema: done
   6-2-atomic-event-writes-and-boot-sequence-wiring: done
-  6-3-tolerant-boot-from-corrupted-or-incomplete-event-log: backlog
+  6-3-tolerant-boot-from-corrupted-or-incomplete-event-log: done
   6-4-schema-migration-and-event-versioning: backlog
   6-5-snapshot-based-replay-for-large-event-logs: backlog
   6-6-production-security-headers-and-csp: backlog
