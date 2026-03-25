@@ -79,6 +79,7 @@ export function completeSession(
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: now,
     elapsedMs,
+    configuredDurationMs: state.configuredDurationMs,
   };
 }
 
@@ -99,5 +100,6 @@ export function abandonSession(
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: now,
     elapsedMs,
+    configuredDurationMs: state.configuredDurationMs,
   };
 }

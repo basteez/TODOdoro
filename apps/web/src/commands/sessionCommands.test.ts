@@ -214,6 +214,7 @@ describe('handleCompleteSession', () => {
     const event = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(event.eventType).toBe('SessionCompleted');
     expect(event.aggregateId).toBe('session-1');
+    expect(event.configuredDurationMs).toBe(25 * 60 * 1000);
   });
 
   it('resets useSessionStore to idle after completion', async () => {
@@ -271,6 +272,7 @@ describe('handleAbandonSession', () => {
     const event = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls[0]![0];
     expect(event.eventType).toBe('SessionAbandoned');
     expect(event.aggregateId).toBe('session-1');
+    expect(event.configuredDurationMs).toBe(25 * 60 * 1000);
   });
 
   it('resets useSessionStore to idle after abandonment', async () => {
@@ -309,6 +311,7 @@ describe('handleAttributeExplorationSession', () => {
     schemaVersion: 1,
     timestamp: 500 + 25 * 60 * 1000,
     elapsedMs: 25 * 60 * 1000,
+    configuredDurationMs: 25 * 60 * 1000,
   };
 
   beforeEach(() => {

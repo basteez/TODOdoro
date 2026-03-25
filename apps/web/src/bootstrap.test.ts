@@ -9,6 +9,7 @@ import {
   INITIAL_DEVOTION_RECORD_STATE,
   projectActiveSession,
   INITIAL_ACTIVE_SESSION_STATE,
+  CURRENT_SCHEMA_VERSION,
 } from '@tododoro/domain';
 import type { DomainEvent, EventStore, SnapshotCreatedEvent } from '@tododoro/domain';
 import { useCanvasStore } from './stores/useCanvasStore.js';
@@ -312,6 +313,7 @@ describe('Boot sequence (AC4)', () => {
         schemaVersion: 1,
         timestamp: 2000 + 25 * 60 * 1000,
         elapsedMs: 25 * 60 * 1000,
+        configuredDurationMs: 25 * 60 * 1000,
       },
       // Orphaned session: started but never completed
       {
@@ -364,6 +366,54 @@ describe('Boot sequence (AC4)', () => {
 
     const session = useSessionStore.getState();
     expect(session.activeSession).toEqual(INITIAL_ACTIVE_SESSION_STATE);
+  });
+
+  it('boots from mixed v1+v2 event log — all read models hydrated correctly after upcast', async () => {
+    const events: DomainEvent[] = [
+      // v1 TodoDeclared — will be upcasted to v2
+      {
+        eventType: 'TodoDeclared',
+        eventId: 'ev-1',
+        aggregateId: 'todo-1',
+        schemaVersion: 1,
+        timestamp: 1000,
+        title: 'Legacy todo',
+      },
+      // v2 SessionStarted — already at current version
+      {
+        eventType: 'SessionStarted',
+        eventId: 'ev-2',
+        aggregateId: 'session-1',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: 2000,
+        todoId: 'todo-1',
+        configuredDurationMs: 25 * 60 * 1000,
+      },
+      // v1 SessionCompleted (no configuredDurationMs) — will be upcasted with default
+      {
+        eventType: 'SessionCompleted',
+        eventId: 'ev-3',
+        aggregateId: 'session-1',
+        schemaVersion: 1,
+        timestamp: 2000 + 25 * 60 * 1000,
+        elapsedMs: 25 * 60 * 1000,
+      } as unknown as DomainEvent,
+    ];
+
+    const eventStore = createMockEventStore(events);
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+
+    const canvas = useCanvasStore.getState();
+    // Todo projected correctly from upcasted v1 event
+    expect(canvas.todos.items).toHaveLength(1);
+    expect(canvas.todos.items[0]!.title).toBe('Legacy todo');
+    // Session completed — pomodoro count incremented
+    expect(canvas.todos.items[0]!.pomodoroCount).toBe(1);
+    expect(canvas.isBooting).toBe(false);
+
+    // Session is idle after completion
+    const session = useSessionStore.getState();
+    expect(session.activeSession.status).toBe('idle');
   });
 
   it('boots with correct recovered state from mixed corruption (AC5)', async () => {

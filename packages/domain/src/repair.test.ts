@@ -58,6 +58,7 @@ function makeSessionCompleted(
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: 2_500_000,
     elapsedMs: 1_500_000,
+    configuredDurationMs: 1_500_000,
     ...overrides,
   };
 }
@@ -72,6 +73,7 @@ function makeSessionAbandoned(
     schemaVersion: CURRENT_SCHEMA_VERSION,
     timestamp: 1_030_000,
     elapsedMs: 30_000,
+    configuredDurationMs: 1_500_000,
     ...overrides,
   };
 }
@@ -140,17 +142,73 @@ describe('upcastEvents', () => {
     expect(result).toEqual(events);
   });
 
-  it('passes events with lower schemaVersion through unchanged at v1 (future migration point)', () => {
-    const event = makeTodoDeclared({
-      schemaVersion: 0,
-    }) as unknown as DomainEvent;
+  it('upcasts v1 events to v2', () => {
+    const event = makeTodoDeclared({ schemaVersion: 1 }) as unknown as DomainEvent;
     const result = upcastEvents([event]);
-    expect(result).toEqual([event]);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.schemaVersion).toBe(2);
+  });
+
+  it('upcasts v0 events through v1→v2', () => {
+    const event = makeTodoDeclared({ schemaVersion: 0 }) as unknown as DomainEvent;
+    const result = upcastEvents([event]);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.schemaVersion).toBe(2);
   });
 
   it('returns empty array for empty input', () => {
     const result = upcastEvents([]);
     expect(result).toEqual([]);
+  });
+});
+
+// =============================================================================
+// upcastFromV1ToV2 (tested via upcastEvents)
+// =============================================================================
+
+describe('upcastFromV1ToV2', () => {
+  it('adds configuredDurationMs to v1 SessionCompletedEvent', () => {
+    const v1Event = {
+      eventType: 'SessionCompleted' as const,
+      eventId: 'sc-1',
+      aggregateId: 'session-1',
+      schemaVersion: 1,
+      timestamp: 2_500_000,
+      elapsedMs: 1_500_000,
+    } as unknown as DomainEvent;
+    const [result] = upcastEvents([v1Event]);
+    expect(result!.schemaVersion).toBe(2);
+    expect((result as SessionCompletedEvent).configuredDurationMs).toBe(25 * 60 * 1000);
+  });
+
+  it('adds configuredDurationMs to v1 SessionAbandonedEvent', () => {
+    const v1Event = {
+      eventType: 'SessionAbandoned' as const,
+      eventId: 'sa-1',
+      aggregateId: 'session-1',
+      schemaVersion: 1,
+      timestamp: 1_030_000,
+      elapsedMs: 30_000,
+    } as unknown as DomainEvent;
+    const [result] = upcastEvents([v1Event]);
+    expect(result!.schemaVersion).toBe(2);
+    expect((result as SessionAbandonedEvent).configuredDurationMs).toBe(25 * 60 * 1000);
+  });
+
+  it('bumps schemaVersion on v1 TodoDeclaredEvent without adding fields', () => {
+    const v1Event = makeTodoDeclared({ schemaVersion: 1 }) as unknown as DomainEvent;
+    const [result] = upcastEvents([v1Event]);
+    expect(result!.schemaVersion).toBe(2);
+    expect(result!.eventType).toBe('TodoDeclared');
+    expect((result as TodoDeclaredEvent).title).toBe('Test Todo');
+    // Should NOT have configuredDurationMs
+    expect('configuredDurationMs' in result!).toBe(false);
+  });
+
+  it('passes v2 SessionCompletedEvent through unchanged', () => {
+    const v2Event = makeSessionCompleted({ schemaVersion: CURRENT_SCHEMA_VERSION });
+    const [result] = upcastEvents([v2Event]);
+    expect(result).toEqual(v2Event);
   });
 });
 
@@ -433,14 +491,46 @@ describe('repairEvents', () => {
     expect(result).toEqual([]);
   });
 
-  it('passes events with mismatched schemaVersion through the upcast step in the pipeline', () => {
+  it('upcasts v1 events to v2 in the pipeline', () => {
     const clock = new FakeClock(1_000_000);
     const idGen = new FakeIdGenerator();
-    // Event with schemaVersion 0 — upcastEvents should pass it through unchanged at v1
-    const oldEvent = makeTodoDeclared({ schemaVersion: 0 }) as unknown as DomainEvent;
+    const oldEvent = makeTodoDeclared({ schemaVersion: 1 }) as unknown as DomainEvent;
     const result = repairEvents([oldEvent], clock, idGen);
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual(oldEvent);
+    expect(result[0]!.schemaVersion).toBe(2);
+  });
+
+  it('handles mixed v1+v2 event log — all events projected correctly after pipeline', () => {
+    const clock = new FakeClock(5_000_000);
+    const idGen = new FakeIdGenerator();
+    const events: (DomainEvent | UnknownEvent)[] = [
+      // v1 TodoDeclared — should be upcasted to v2
+      { ...makeTodoDeclared({ eventId: 'td-1' }), schemaVersion: 1 } as unknown as DomainEvent,
+      // v2 SessionStarted — should pass through unchanged
+      makeSessionStarted({ eventId: 'ss-1', schemaVersion: CURRENT_SCHEMA_VERSION }),
+      // v1 SessionCompleted (no configuredDurationMs) — should be upcasted with default
+      {
+        eventType: 'SessionCompleted' as const,
+        eventId: 'sc-1',
+        aggregateId: 'session-1',
+        schemaVersion: 1,
+        timestamp: 2_500_000,
+        elapsedMs: 1_500_000,
+      } as unknown as DomainEvent,
+      // v2 TodoDeclared — should pass through unchanged
+      makeTodoDeclared({ eventId: 'td-2', aggregateId: 'todo-2', title: 'Second Todo' }),
+    ];
+
+    const result = repairEvents(events, clock, idGen);
+
+    expect(result).toHaveLength(4);
+    // All events should now be at v2
+    for (const event of result) {
+      expect(event.schemaVersion).toBe(2);
+    }
+    // v1 SessionCompleted should have been given configuredDurationMs
+    const completed = result[2] as SessionCompletedEvent;
+    expect(completed.configuredDurationMs).toBe(25 * 60 * 1000);
   });
 });
 
@@ -528,12 +618,12 @@ describe('Corruption Scenarios', () => {
     expect(synthesized.elapsedMs).toBe(1_500_000);
   });
 
-  it('Scenario 6 — Mismatched schemaVersion: events with schemaVersion 0 pass through upcastEvents unchanged', () => {
+  it('Scenario 6 — Mismatched schemaVersion: events with schemaVersion 0 are upcasted to current version', () => {
     const event = makeTodoDeclared({
       schemaVersion: 0,
     }) as unknown as DomainEvent;
     const result = upcastEvents([event]);
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual(event);
+    expect(result[0]!.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 });

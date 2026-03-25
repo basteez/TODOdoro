@@ -10,7 +10,7 @@ import type { ShelfReadModel } from './projections/shelf.js';
 import type { DevotionRecordReadModel } from './projections/devotionRecord.js';
 import type { ActiveSessionReadModel } from './projections/activeSession.js';
 
-export const CURRENT_SCHEMA_VERSION = 1 as const;
+export const CURRENT_SCHEMA_VERSION = 2 as const;
 
 export const SNAPSHOT_THRESHOLD = 500 as const;
 
@@ -83,6 +83,7 @@ export interface SessionCompletedEvent {
   readonly schemaVersion: number;
   readonly timestamp: number;
   readonly elapsedMs: number;
+  readonly configuredDurationMs: number;
 }
 
 export interface SessionAbandonedEvent {
@@ -92,6 +93,7 @@ export interface SessionAbandonedEvent {
   readonly schemaVersion: number;
   readonly timestamp: number;
   readonly elapsedMs: number; // will be < 60000 (60s threshold)
+  readonly configuredDurationMs: number;
 }
 
 export interface SessionAttributedEvent {

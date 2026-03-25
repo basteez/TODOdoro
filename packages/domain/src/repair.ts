@@ -49,10 +49,34 @@ export function upcastEvents(
   return events.map(upcastEvent);
 }
 
+const DEFAULT_CONFIGURED_DURATION_MS = 25 * 60 * 1000; // 25 minutes
+
+function upcastFromV1ToV2(event: DomainEvent): DomainEvent {
+  if (
+    event.eventType === 'SessionCompleted' ||
+    event.eventType === 'SessionAbandoned'
+  ) {
+    return {
+      ...event,
+      configuredDurationMs: DEFAULT_CONFIGURED_DURATION_MS,
+      schemaVersion: 2,
+    };
+  }
+  return { ...event, schemaVersion: 2 };
+}
+
+// Schema Migration Pattern:
+// 1. Bump CURRENT_SCHEMA_VERSION in events.ts
+// 2. Add/modify fields on affected event types
+// 3. Add upcastFromVNToVN+1() function below
+// 4. Chain in upcastEvent(): if (event.schemaVersion < N+1) event = upcastFromVNToVN+1(event)
+// 5. Update command handlers to populate new fields
+// 6. Add tests: v(N) events upcasted correctly, mixed-version replay works
 function upcastEvent(event: DomainEvent): DomainEvent {
-  // At schemaVersion = 1, no migration needed
-  // Future versions add:
-  // if (event.schemaVersion === 1) return upcastFrom1To2(event);
+  const version = event.schemaVersion || 0;
+  if (version < 2) {
+    event = upcastFromV1ToV2(event);
+  }
   return event;
 }
 
@@ -95,6 +119,7 @@ export function autoCloseOrphanedSessions(
           schemaVersion: CURRENT_SCHEMA_VERSION,
           timestamp: event.timestamp + event.configuredDurationMs,
           elapsedMs: event.configuredDurationMs,
+          configuredDurationMs: event.configuredDurationMs,
         });
       }
     }
