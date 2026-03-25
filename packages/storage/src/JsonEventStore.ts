@@ -1,4 +1,4 @@
-import type { DomainEvent, EventStore } from '@tododoro/domain';
+import type { DomainEvent, EventStore, SnapshotCreatedEvent, SnapshotReadResult } from '@tododoro/domain';
 
 const STORAGE_KEY = 'tododoro:events';
 
@@ -18,6 +18,30 @@ export class JsonEventStore implements EventStore {
 
   async readByAggregate(aggregateId: string): Promise<ReadonlyArray<DomainEvent>> {
     return this.readFromStorage().filter(e => e.aggregateId === aggregateId);
+  }
+
+  async count(): Promise<number> {
+    return this.readFromStorage().length;
+  }
+
+  async readFromLatestSnapshot(): Promise<SnapshotReadResult> {
+    const allEvents = this.readFromStorage();
+
+    let snapshotIndex = -1;
+    for (let i = allEvents.length - 1; i >= 0; i--) {
+      if (allEvents[i]!.eventType === 'SnapshotCreated') {
+        snapshotIndex = i;
+        break;
+      }
+    }
+
+    if (snapshotIndex === -1) {
+      return { snapshot: null, events: allEvents };
+    }
+
+    const snapshot = allEvents[snapshotIndex] as SnapshotCreatedEvent;
+    const events = allEvents.slice(snapshotIndex + 1);
+    return { snapshot, events };
   }
 
   private readFromStorage(): DomainEvent[] {

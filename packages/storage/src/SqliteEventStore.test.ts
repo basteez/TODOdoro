@@ -1,6 +1,12 @@
 import { beforeEach, describe, it, expect, vi } from 'vitest';
-import type { TodoDeclaredEvent, SessionStartedEvent, DomainEvent } from '@tododoro/domain';
-import { CURRENT_SCHEMA_VERSION } from '@tododoro/domain';
+import type { TodoDeclaredEvent, SessionStartedEvent, SnapshotCreatedEvent, DomainEvent } from '@tododoro/domain';
+import {
+  CURRENT_SCHEMA_VERSION,
+  INITIAL_TODO_LIST_STATE,
+  INITIAL_SHELF_STATE,
+  INITIAL_DEVOTION_RECORD_STATE,
+  INITIAL_ACTIVE_SESSION_STATE,
+} from '@tododoro/domain';
 
 // In-memory mock that simulates SQLite behavior for SQLocal's sql tagged template.
 // NOTE: This mock validates behavior (append/read/filter/order) but does NOT
@@ -51,6 +57,29 @@ function mockSql(strings: TemplateStringsArray, ...values: unknown[]): Promise<u
       payload: payload,
     });
     return Promise.resolve([]);
+  }
+
+  if (query.includes('SELECT COUNT')) {
+    return Promise.resolve([{ 'COUNT(*)': mockRows.length }]);
+  }
+
+  if (query.includes('event_type') && query.includes('ORDER BY seq DESC') && query.includes('LIMIT 1')) {
+    const eventType = values[0] as string;
+    const sorted = [...mockRows].sort((a, b) => b.seq - a.seq);
+    const match = sorted.find((r) => r.event_type === eventType);
+    if (match) {
+      return Promise.resolve([{ seq: match.seq, payload: match.payload }]);
+    }
+    return Promise.resolve([]);
+  }
+
+  if (query.includes('WHERE seq >')) {
+    const seqThreshold = values[0] as number;
+    const filtered = mockRows
+      .filter((r) => r.seq > seqThreshold)
+      .sort((a, b) => a.seq - b.seq)
+      .map((r) => ({ payload: r.payload }));
+    return Promise.resolve(filtered);
   }
 
   if (query.includes('WHERE aggregate_id')) {
@@ -368,6 +397,110 @@ describe('SqliteEventStore', () => {
       expect(events).toHaveLength(2);
       expect(events[0]!.schemaVersion).toBe(1);
       expect(events[1]!.schemaVersion).toBe(2);
+    });
+  });
+
+  describe('count', () => {
+    it('returns 0 when store is empty', async () => {
+      expect(await store.count()).toBe(0);
+    });
+
+    it('returns correct count after appending events', async () => {
+      await store.append(makeTodoDeclared('todo-1'));
+      await store.append(makeTodoDeclared('todo-2'));
+      await store.append(makeTodoDeclared('todo-3'));
+      expect(await store.count()).toBe(3);
+    });
+  });
+
+  describe('readFromLatestSnapshot', () => {
+    // Snapshot state uses INITIAL_*_STATE constants. After JSON round-trip
+    // through the store, Maps become plain objects (e.g. pendingSessions: {}).
+    // We build the expected snapshot as the JSON-round-tripped version.
+    function makeSnapshotEvent(eventId = 'evt-snap', timestamp = 5_000_000): SnapshotCreatedEvent {
+      return {
+        eventType: 'SnapshotCreated',
+        eventId,
+        aggregateId: 'system',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp,
+        snapshotState: {
+          todoList: INITIAL_TODO_LIST_STATE,
+          shelf: INITIAL_SHELF_STATE,
+          devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+          activeSession: INITIAL_ACTIVE_SESSION_STATE,
+        },
+      };
+    }
+
+    /** What a snapshot looks like after JSON.stringify → JSON.parse round-trip (Maps become {}) */
+    function jsonRoundTrip<T>(value: T): T {
+      return JSON.parse(JSON.stringify(value)) as T;
+    }
+
+    it('returns null snapshot and all events when no snapshot exists', async () => {
+      const event1 = makeTodoDeclared('todo-1');
+      const event2 = makeTodoDeclared('todo-2');
+      await store.append(event1);
+      await store.append(event2);
+
+      const result = await store.readFromLatestSnapshot();
+      expect(result.snapshot).toBeNull();
+      expect(result.events).toHaveLength(2);
+      expect(result.events[0]).toEqual(event1);
+      expect(result.events[1]).toEqual(event2);
+    });
+
+    it('returns snapshot and only post-snapshot events', async () => {
+      const preEvent = makeTodoDeclared('todo-1');
+      const snapshot = makeSnapshotEvent();
+      const postEvent = makeTodoDeclared('todo-2');
+
+      await store.append(preEvent);
+      await store.append(snapshot);
+      await store.append(postEvent);
+
+      const result = await store.readFromLatestSnapshot();
+      expect(result.snapshot).toEqual(jsonRoundTrip(snapshot));
+      expect(result.events).toHaveLength(1);
+      expect(result.events[0]).toEqual(postEvent);
+    });
+
+    it('returns latest snapshot when multiple snapshots exist', async () => {
+      const event1 = makeTodoDeclared('todo-1');
+      const snap1 = makeSnapshotEvent('evt-snap-1', 2_000_000);
+      const event2 = makeTodoDeclared('todo-2');
+      const snap2 = makeSnapshotEvent('evt-snap-2', 4_000_000);
+      const event3 = makeTodoDeclared('todo-3');
+
+      await store.append(event1);
+      await store.append(snap1);
+      await store.append(event2);
+      await store.append(snap2);
+      await store.append(event3);
+
+      const result = await store.readFromLatestSnapshot();
+      expect(result.snapshot).toEqual(jsonRoundTrip(snap2));
+      expect(result.events).toHaveLength(1);
+      expect(result.events[0]).toEqual(event3);
+    });
+
+    it('returns snapshot with zero post-snapshot events', async () => {
+      const event1 = makeTodoDeclared('todo-1');
+      const snapshot = makeSnapshotEvent();
+
+      await store.append(event1);
+      await store.append(snapshot);
+
+      const result = await store.readFromLatestSnapshot();
+      expect(result.snapshot).toEqual(jsonRoundTrip(snapshot));
+      expect(result.events).toHaveLength(0);
+    });
+
+    it('returns null snapshot and empty events when store is empty', async () => {
+      const result = await store.readFromLatestSnapshot();
+      expect(result.snapshot).toBeNull();
+      expect(result.events).toHaveLength(0);
     });
   });
 

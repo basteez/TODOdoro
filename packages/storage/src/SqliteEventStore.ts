@@ -1,4 +1,4 @@
-import type { DomainEvent, EventStore } from '@tododoro/domain';
+import type { DomainEvent, EventStore, SnapshotCreatedEvent, SnapshotReadResult } from '@tododoro/domain';
 import { SQLocal } from 'sqlocal';
 
 // Raw SQL below must stay in sync with the Drizzle schema definition in
@@ -27,6 +27,7 @@ export class SqliteEventStore implements EventStore {
     `;
     await this.db.sql`CREATE INDEX IF NOT EXISTS idx_events_agg_seq ON events(aggregate_id, seq)`;
     await this.db.sql`CREATE INDEX IF NOT EXISTS idx_events_seq ON events(seq)`;
+    await this.db.sql`CREATE INDEX IF NOT EXISTS idx_events_event_type_seq ON events(event_type, seq)`;
   }
 
   async append(event: DomainEvent): Promise<void> {
@@ -59,6 +60,53 @@ export class SqliteEventStore implements EventStore {
       try { return [JSON.parse(row.payload) as DomainEvent]; }
       catch { return []; }
     });
+  }
+
+  async count(): Promise<number> {
+    const rows = await this.db.sql<{ 'COUNT(*)': number }>`
+      SELECT COUNT(*) FROM events
+    `;
+    return rows[0]?.['COUNT(*)'] ?? 0;
+  }
+
+  async readFromLatestSnapshot(): Promise<SnapshotReadResult> {
+    // Find the latest SnapshotCreated event by seq (descending)
+    const snapshotRows = await this.db.sql<{ seq: number; payload: string }>`
+      SELECT seq, payload FROM events
+      WHERE event_type = ${'SnapshotCreated'}
+      ORDER BY seq DESC
+      LIMIT 1
+    `;
+
+    if (snapshotRows.length === 0) {
+      // No snapshot — return all events
+      const allEvents = await this.readAll();
+      return { snapshot: null, events: allEvents };
+    }
+
+    const snapshotRow = snapshotRows[0]!;
+    let snapshot: SnapshotCreatedEvent;
+    try {
+      snapshot = JSON.parse(snapshotRow.payload) as SnapshotCreatedEvent;
+    } catch {
+      // Corrupted snapshot — fall back to all events
+      const allEvents = await this.readAll();
+      return { snapshot: null, events: allEvents };
+    }
+
+    // Read only events after the snapshot
+    const postSnapshotRows = await this.db.sql<{ payload: string }>`
+      SELECT payload FROM events
+      WHERE seq > ${snapshotRow.seq}
+      ORDER BY seq ASC
+    `;
+
+    const events = postSnapshotRows.flatMap((row) => {
+      try { return [JSON.parse(row.payload) as DomainEvent]; }
+      catch { return []; }
+    });
+
+    return { snapshot, events };
   }
 
   async destroy(): Promise<void> {

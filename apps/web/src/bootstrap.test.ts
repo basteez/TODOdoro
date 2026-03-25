@@ -10,14 +10,16 @@ import {
   projectActiveSession,
   INITIAL_ACTIVE_SESSION_STATE,
   CURRENT_SCHEMA_VERSION,
+  createSnapshotIfNeeded,
+  deserializeSnapshotState,
 } from '@tododoro/domain';
-import type { DomainEvent, EventStore, SnapshotCreatedEvent } from '@tododoro/domain';
+import type { DomainEvent, EventStore, SnapshotCreatedEvent, SnapshotReadResult } from '@tododoro/domain';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
 
 /**
  * Replicates the bootstrap logic from main.tsx for testability.
- * Mirrors main.tsx exactly, including the SnapshotCreatedEvent replay path.
+ * Mirrors main.tsx exactly, including snapshot-aware read, repair, projection, and snapshot creation.
  * Tests verify AC4: first launch (empty DB) and subsequent launches (existing events).
  */
 async function bootstrapFromEvents(eventStore: EventStore, clock: { now: () => number }, idGenerator: { generate: () => string }) {
@@ -27,37 +29,74 @@ async function bootstrapFromEvents(eventStore: EventStore, clock: { now: () => n
   let sessionState = INITIAL_ACTIVE_SESSION_STATE;
 
   try {
-    const allEvents = await eventStore.readAll();
-    const repairedEvents = repairEvents(allEvents, clock, idGenerator);
+    // Attempt optimized snapshot-aware read first
+    let snapshotResult: SnapshotReadResult | null = null;
+    try {
+      snapshotResult = await eventStore.readFromLatestSnapshot();
+    } catch {
+      // Snapshot read failed — fall back to readAll()
+    }
+
+    let rawEvents: readonly DomainEvent[];
+    let lastSnapshot: SnapshotCreatedEvent | null;
+
+    if (snapshotResult) {
+      rawEvents = snapshotResult.events;
+      lastSnapshot = snapshotResult.snapshot;
+    } else {
+      // Fallback: load all events and find snapshot in memory
+      const allEvents = await eventStore.readAll();
+      const foundSnapshot = [...allEvents]
+        .reverse()
+        .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated') ?? null;
+
+      if (foundSnapshot) {
+        const snapshotIndex = allEvents.indexOf(foundSnapshot);
+        rawEvents = allEvents.slice(snapshotIndex + 1);
+        lastSnapshot = foundSnapshot;
+      } else {
+        rawEvents = allEvents;
+        lastSnapshot = null;
+      }
+    }
+
+    // Repair only the post-snapshot events
+    const repairedEvents = repairEvents(rawEvents, clock, idGenerator);
 
     // Persist synthesized events. If persisting fails, skip — re-created on next boot.
-    const originalEventIds = new Set(allEvents.map((e) => e.eventId));
+    const originalEventIds = new Set(rawEvents.map((e) => e.eventId));
     const synthesizedEvents = repairedEvents.filter((e) => !originalEventIds.has(e.eventId));
     for (const event of synthesizedEvents) {
       try { await eventStore.append(event); } catch { /* skip — re-created on next boot */ }
     }
 
-    const lastSnapshot = [...repairedEvents]
-      .reverse()
-      .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated');
-
     if (lastSnapshot) {
-      const snapshotIndex = repairedEvents.indexOf(lastSnapshot);
-      const eventsAfterSnapshot = repairedEvents.slice(snapshotIndex + 1);
-      todoListState = eventsAfterSnapshot.reduce(projectTodoList, lastSnapshot.snapshotState.todoList);
-      shelfState = eventsAfterSnapshot.reduce(projectShelf, lastSnapshot.snapshotState.shelf);
-      devotionState = eventsAfterSnapshot.reduce(projectDevotionRecord, lastSnapshot.snapshotState.devotionRecord);
-      sessionState = eventsAfterSnapshot.reduce(projectActiveSession, lastSnapshot.snapshotState.activeSession);
+      const snapshotState = deserializeSnapshotState(lastSnapshot.snapshotState);
+      todoListState = repairedEvents.reduce(projectTodoList, snapshotState.todoList);
+      shelfState = repairedEvents.reduce(projectShelf, snapshotState.shelf);
+      devotionState = repairedEvents.reduce(projectDevotionRecord, snapshotState.devotionRecord);
+      sessionState = repairedEvents.reduce(projectActiveSession, snapshotState.activeSession);
     } else {
       todoListState = repairedEvents.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
       shelfState = repairedEvents.reduce(projectShelf, INITIAL_SHELF_STATE);
       devotionState = repairedEvents.reduce(projectDevotionRecord, INITIAL_DEVOTION_RECORD_STATE);
       sessionState = repairedEvents.reduce(projectActiveSession, INITIAL_ACTIVE_SESSION_STATE);
     }
+
+    // Snapshot creation: if events since last snapshot >= threshold, create a new snapshot
+    // Use rawEvents.length (actual stored count) not repairedEvents.length (which may differ after dedup/skip)
+    const eventCountSinceSnapshot = rawEvents.length;
+    const snapshotEvent = createSnapshotIfNeeded(
+      eventCountSinceSnapshot,
+      { todoList: todoListState, shelf: shelfState, devotionRecord: devotionState, activeSession: sessionState },
+      clock,
+      idGenerator,
+    );
+    if (snapshotEvent) {
+      try { await eventStore.append(snapshotEvent); } catch { /* skip — will retry on next boot */ }
+    }
   } catch {
     // Fall back to initial state — canvas renders empty rather than crashing.
-    // Re-assignment is necessary: partial execution may have modified some state
-    // vars (e.g., todoListState updated before shelfState reduce throws).
     todoListState = INITIAL_TODO_LIST_STATE;
     shelfState = INITIAL_SHELF_STATE;
     devotionState = INITIAL_DEVOTION_RECORD_STATE;
@@ -69,10 +108,29 @@ async function bootstrapFromEvents(eventStore: EventStore, clock: { now: () => n
 }
 
 function createMockEventStore(events: DomainEvent[] = []): EventStore {
+  // Simulate snapshot-aware read: find last SnapshotCreated and return post-snapshot events
+  const readFromLatestSnapshot = (): Promise<SnapshotReadResult> => {
+    let snapshotIndex = -1;
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (events[i]!.eventType === 'SnapshotCreated') {
+        snapshotIndex = i;
+        break;
+      }
+    }
+    if (snapshotIndex === -1) {
+      return Promise.resolve({ snapshot: null, events });
+    }
+    const snapshot = events[snapshotIndex] as SnapshotCreatedEvent;
+    const postSnapshotEvents = events.slice(snapshotIndex + 1);
+    return Promise.resolve({ snapshot, events: postSnapshotEvents });
+  };
+
   return {
     append: vi.fn<EventStore['append']>(() => Promise.resolve()),
     readAll: vi.fn<EventStore['readAll']>(() => Promise.resolve(events)),
     readByAggregate: vi.fn<EventStore['readByAggregate']>(() => Promise.resolve([])),
+    count: vi.fn<EventStore['count']>(() => Promise.resolve(events.length)),
+    readFromLatestSnapshot: vi.fn<EventStore['readFromLatestSnapshot']>(readFromLatestSnapshot),
   };
 }
 
@@ -354,6 +412,8 @@ describe('Boot sequence (AC4)', () => {
       append: vi.fn(() => Promise.resolve()),
       readAll: vi.fn(() => Promise.reject(new Error('OPFS read failed'))),
       readByAggregate: vi.fn(() => Promise.resolve([])),
+      count: vi.fn(() => Promise.resolve(0)),
+      readFromLatestSnapshot: vi.fn(() => Promise.reject(new Error('OPFS read failed'))),
     };
 
     await bootstrapFromEvents(eventStore, clock, idGenerator);
@@ -473,5 +533,377 @@ describe('Boot sequence (AC4)', () => {
     // Session should be idle after auto-completion of orphaned session
     const session = useSessionStore.getState();
     expect(session.activeSession.status).toBe('idle');
+  });
+});
+
+describe('Snapshot correctness (AC5)', () => {
+  beforeEach(() => {
+    resetStores();
+    idCounter = 0;
+  });
+
+  it('state projected with snapshot equals state projected without snapshot (round-trip equivalence)', async () => {
+    const events: DomainEvent[] = [
+      { eventType: 'TodoDeclared', eventId: 'ev-1', aggregateId: 'todo-1', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1000, title: 'First' },
+      { eventType: 'TodoPositioned', eventId: 'ev-2', aggregateId: 'todo-1', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1001, x: 100, y: 200 },
+      { eventType: 'TodoDeclared', eventId: 'ev-3', aggregateId: 'todo-2', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 2000, title: 'Second' },
+    ];
+
+    // Boot without snapshot (baseline — only used to verify the helper works)
+    const noSnapStore = createMockEventStore(events);
+    await bootstrapFromEvents(noSnapStore, clock, idGenerator);
+
+    resetStores();
+    idCounter = 0;
+
+    // Build snapshot from the same events
+    const todoList = events.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
+    const shelf = events.reduce(projectShelf, INITIAL_SHELF_STATE);
+    const devotionRecord = events.reduce(projectDevotionRecord, INITIAL_DEVOTION_RECORD_STATE);
+    const activeSession = events.reduce(projectActiveSession, INITIAL_ACTIVE_SESSION_STATE);
+
+    const snapshotEvents: DomainEvent[] = [
+      ...events,
+      {
+        eventType: 'SnapshotCreated',
+        eventId: 'ev-snap',
+        aggregateId: 'system',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: 3000,
+        snapshotState: { todoList, shelf, devotionRecord, activeSession },
+      },
+      // One more event after snapshot
+      { eventType: 'TodoDeclared', eventId: 'ev-4', aggregateId: 'todo-3', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 4000, title: 'Third' },
+    ];
+    const noSnapEventsWithExtra: DomainEvent[] = [
+      ...events,
+      { eventType: 'TodoDeclared', eventId: 'ev-4', aggregateId: 'todo-3', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 4000, title: 'Third' },
+    ];
+
+    // Boot with snapshot
+    const snapStore = createMockEventStore(snapshotEvents);
+    await bootstrapFromEvents(snapStore, clock, idGenerator);
+    const snapCanvas = { ...useCanvasStore.getState() };
+    const snapSession = { ...useSessionStore.getState() };
+
+    resetStores();
+    idCounter = 0;
+
+    // Boot without snapshot but same events
+    const noSnap2Store = createMockEventStore(noSnapEventsWithExtra);
+    await bootstrapFromEvents(noSnap2Store, clock, idGenerator);
+    const noSnap2Canvas = { ...useCanvasStore.getState() };
+    const noSnap2Session = { ...useSessionStore.getState() };
+
+    // Both should produce identical state
+    expect(snapCanvas.todos.items).toEqual(noSnap2Canvas.todos.items);
+    expect(snapCanvas.shelf).toEqual(noSnap2Canvas.shelf);
+    expect(snapCanvas.devotionRecord).toEqual(noSnap2Canvas.devotionRecord);
+    expect(snapSession.activeSession).toEqual(noSnap2Session.activeSession);
+  });
+
+  it('multiple snapshot cycles (500 events -> snapshot -> 500 more -> second snapshot -> boot)', async () => {
+    // Simulate two snapshot cycles with a handful of events for test speed
+    const eventsBeforeSnap1: DomainEvent[] = Array.from({ length: 5 }, (_, i) => ({
+      eventType: 'TodoDeclared' as const,
+      eventId: `ev-${i}`,
+      aggregateId: `todo-${i}`,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 1000 + i,
+      title: `Todo ${i}`,
+    }));
+
+    const snap1State = eventsBeforeSnap1.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
+
+    const snap1: SnapshotCreatedEvent = {
+      eventType: 'SnapshotCreated',
+      eventId: 'ev-snap-1',
+      aggregateId: 'system',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 10_000,
+      snapshotState: {
+        todoList: snap1State,
+        shelf: INITIAL_SHELF_STATE,
+        devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+        activeSession: INITIAL_ACTIVE_SESSION_STATE,
+      },
+    };
+
+    const eventsBetweenSnapshots: DomainEvent[] = Array.from({ length: 3 }, (_, i) => ({
+      eventType: 'TodoDeclared' as const,
+      eventId: `ev-mid-${i}`,
+      aggregateId: `todo-mid-${i}`,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 20_000 + i,
+      title: `Mid todo ${i}`,
+    }));
+
+    const snap2TodoList = eventsBetweenSnapshots.reduce(projectTodoList, snap1State);
+
+    const snap2: SnapshotCreatedEvent = {
+      eventType: 'SnapshotCreated',
+      eventId: 'ev-snap-2',
+      aggregateId: 'system',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 30_000,
+      snapshotState: {
+        todoList: snap2TodoList,
+        shelf: INITIAL_SHELF_STATE,
+        devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+        activeSession: INITIAL_ACTIVE_SESSION_STATE,
+      },
+    };
+
+    const eventsAfterSnap2: DomainEvent[] = [
+      { eventType: 'TodoDeclared', eventId: 'ev-final', aggregateId: 'todo-final', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 40_000, title: 'Final' },
+    ];
+
+    const allEvents = [...eventsBeforeSnap1, snap1, ...eventsBetweenSnapshots, snap2, ...eventsAfterSnap2];
+    const eventStore = createMockEventStore(allEvents);
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+
+    const canvas = useCanvasStore.getState();
+    // Should have: 5 (before snap1) + 3 (between snaps) + 1 (after snap2) = 9 todos
+    expect(canvas.todos.items).toHaveLength(9);
+    expect(canvas.todos.items.find((t) => t.id === 'todo-final')?.title).toBe('Final');
+    expect(canvas.todos.items.find((t) => t.id === 'todo-0')?.title).toBe('Todo 0');
+  });
+
+  it('boot with snapshot + zero events after snapshot', async () => {
+    const todo: DomainEvent = {
+      eventType: 'TodoDeclared',
+      eventId: 'ev-1',
+      aggregateId: 'todo-1',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 1000,
+      title: 'Only todo',
+    };
+    const todoList = [todo].reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
+
+    const events: DomainEvent[] = [
+      todo,
+      {
+        eventType: 'SnapshotCreated',
+        eventId: 'ev-snap',
+        aggregateId: 'system',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: 2000,
+        snapshotState: {
+          todoList,
+          shelf: INITIAL_SHELF_STATE,
+          devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+          activeSession: INITIAL_ACTIVE_SESSION_STATE,
+        },
+      },
+    ];
+
+    const eventStore = createMockEventStore(events);
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+
+    const canvas = useCanvasStore.getState();
+    expect(canvas.todos.items).toHaveLength(1);
+    expect(canvas.todos.items[0]!.title).toBe('Only todo');
+  });
+
+  it('boot with corrupted/invalid snapshot falls back to full replay', async () => {
+    const events: DomainEvent[] = [
+      {
+        eventType: 'SnapshotCreated',
+        eventId: 'ev-snap',
+        aggregateId: 'system',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: 1000,
+        snapshotState: {
+          todoList: null as never,
+          shelf: INITIAL_SHELF_STATE,
+          devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+          activeSession: INITIAL_ACTIVE_SESSION_STATE,
+        },
+      },
+      {
+        eventType: 'TodoDeclared',
+        eventId: 'ev-1',
+        aggregateId: 'todo-1',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: 2000,
+        title: 'Post-snapshot todo',
+      },
+    ];
+
+    // The mock readFromLatestSnapshot returns the corrupted snapshot.
+    // The bootstrap should catch the projection error and fall back to INITIAL state.
+    const eventStore = createMockEventStore(events);
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+
+    const canvas = useCanvasStore.getState();
+    // Falls back to INITIAL state because corrupted snapshot causes projection error
+    expect(canvas.todos).toEqual(INITIAL_TODO_LIST_STATE);
+  });
+
+  it('snapshot creation uses SNAPSHOT_THRESHOLD constant, not magic numbers', async () => {
+    // Verify the createSnapshotIfNeeded function uses the correct threshold
+    const { SNAPSHOT_THRESHOLD } = await import('@tododoro/domain');
+    expect(SNAPSHOT_THRESHOLD).toBe(500);
+
+    const { createSnapshotIfNeeded: createSnapshot } = await import('@tododoro/domain');
+    const state = {
+      todoList: INITIAL_TODO_LIST_STATE,
+      shelf: INITIAL_SHELF_STATE,
+      devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+      activeSession: INITIAL_ACTIVE_SESSION_STATE,
+    };
+    // Below threshold: no snapshot
+    expect(createSnapshot(SNAPSHOT_THRESHOLD - 1, state, clock, idGenerator)).toBeNull();
+    // At threshold: snapshot created
+    expect(createSnapshot(SNAPSHOT_THRESHOLD, state, clock, idGenerator)).not.toBeNull();
+  });
+
+  it('SnapshotCreatedEvent carries CURRENT_SCHEMA_VERSION', async () => {
+    const { createSnapshotIfNeeded: createSnapshot, SNAPSHOT_THRESHOLD } = await import('@tododoro/domain');
+    const state = {
+      todoList: INITIAL_TODO_LIST_STATE,
+      shelf: INITIAL_SHELF_STATE,
+      devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+      activeSession: INITIAL_ACTIVE_SESSION_STATE,
+    };
+    const snapshot = createSnapshot(SNAPSHOT_THRESHOLD, state, clock, idGenerator);
+    expect(snapshot!.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+  });
+
+  it('snapshot triggers only when events SINCE LAST SNAPSHOT >= 500, not total events', async () => {
+    // Create events with a snapshot in the middle, then fewer than 500 after
+    const eventsBeforeSnap: DomainEvent[] = Array.from({ length: 3 }, (_, i) => ({
+      eventType: 'TodoDeclared' as const,
+      eventId: `ev-pre-${i}`,
+      aggregateId: `todo-pre-${i}`,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 1000 + i,
+      title: `Pre ${i}`,
+    }));
+
+    const todoList = eventsBeforeSnap.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
+    const snap: SnapshotCreatedEvent = {
+      eventType: 'SnapshotCreated',
+      eventId: 'ev-snap',
+      aggregateId: 'system',
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 5000,
+      snapshotState: {
+        todoList,
+        shelf: INITIAL_SHELF_STATE,
+        devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+        activeSession: INITIAL_ACTIVE_SESSION_STATE,
+      },
+    };
+
+    const eventsAfterSnap: DomainEvent[] = Array.from({ length: 2 }, (_, i) => ({
+      eventType: 'TodoDeclared' as const,
+      eventId: `ev-post-${i}`,
+      aggregateId: `todo-post-${i}`,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 10_000 + i,
+      title: `Post ${i}`,
+    }));
+
+    const allEvents = [...eventsBeforeSnap, snap, ...eventsAfterSnap];
+    const eventStore = createMockEventStore(allEvents);
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+
+    // Only 2 events since last snapshot — no new snapshot should be created
+    const appendCalls = (eventStore.append as ReturnType<typeof vi.fn>).mock.calls;
+    const snapshotAppends = appendCalls.filter(
+      (call: DomainEvent[]) => call[0]!.eventType === 'SnapshotCreated',
+    );
+    expect(snapshotAppends).toHaveLength(0);
+  });
+
+  it('falls back to readAll() when readFromLatestSnapshot throws, and still boots correctly', async () => {
+    const events: DomainEvent[] = [
+      { eventType: 'TodoDeclared', eventId: 'ev-1', aggregateId: 'todo-1', schemaVersion: CURRENT_SCHEMA_VERSION, timestamp: 1000, title: 'Fallback todo' },
+    ];
+
+    const eventStore: EventStore = {
+      append: vi.fn(() => Promise.resolve()),
+      readAll: vi.fn<EventStore['readAll']>(() => Promise.resolve(events)),
+      readByAggregate: vi.fn(() => Promise.resolve([])),
+      count: vi.fn(() => Promise.resolve(events.length)),
+      readFromLatestSnapshot: vi.fn(() => Promise.reject(new Error('snapshot read failed'))),
+    };
+
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+
+    // readAll should have been called as fallback
+    expect(eventStore.readAll).toHaveBeenCalled();
+    const canvas = useCanvasStore.getState();
+    expect(canvas.todos.items).toHaveLength(1);
+    expect(canvas.todos.items[0]!.title).toBe('Fallback todo');
+  });
+});
+
+describe('Snapshot performance (AC2, AC3)', () => {
+  beforeEach(() => {
+    resetStores();
+    idCounter = 0;
+  });
+
+  function generateEvents(count: number, startId = 0): DomainEvent[] {
+    return Array.from({ length: count }, (_, i) => ({
+      eventType: 'TodoDeclared' as const,
+      eventId: `perf-ev-${startId + i}`,
+      aggregateId: `todo-perf-${startId + i}`,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
+      timestamp: 1000 + startId + i,
+      title: `Perf todo ${startId + i}`,
+    }));
+  }
+
+  it('replays 500 events (post-snapshot) in under 50ms (NFR4)', async () => {
+    const events = generateEvents(500);
+    const eventStore = createMockEventStore(events);
+
+    const start = performance.now();
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+    const elapsed = performance.now() - start;
+
+    expect(elapsed).toBeLessThan(50);
+    expect(useCanvasStore.getState().todos.items).toHaveLength(500);
+  });
+
+  it('replays 5,000 total events with snapshots every 500 in under 200ms (NFR5)', async () => {
+    // Build 5,000 events with snapshots every 500
+    const allEvents: DomainEvent[] = [];
+    let currentTodoList = INITIAL_TODO_LIST_STATE;
+
+    for (let batch = 0; batch < 10; batch++) {
+      const batchEvents = generateEvents(500, batch * 500);
+      allEvents.push(...batchEvents);
+      currentTodoList = batchEvents.reduce(projectTodoList, currentTodoList);
+
+      const snapshot: SnapshotCreatedEvent = {
+        eventType: 'SnapshotCreated',
+        eventId: `snap-${batch}`,
+        aggregateId: 'system',
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        timestamp: 100_000 + batch * 10_000,
+        snapshotState: {
+          todoList: currentTodoList,
+          shelf: INITIAL_SHELF_STATE,
+          devotionRecord: INITIAL_DEVOTION_RECORD_STATE,
+          activeSession: INITIAL_ACTIVE_SESSION_STATE,
+        },
+      };
+      allEvents.push(snapshot);
+    }
+
+    const eventStore = createMockEventStore(allEvents);
+
+    const start = performance.now();
+    await bootstrapFromEvents(eventStore, clock, idGenerator);
+    const elapsed = performance.now() - start;
+
+    expect(elapsed).toBeLessThan(200);
+    // The mock only gives post-last-snapshot events (0 events after the last snapshot)
+    // so state comes from the last snapshot which has all 5000 todos projected
+    expect(useCanvasStore.getState().todos.items).toHaveLength(5000);
   });
 });

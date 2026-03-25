@@ -11,8 +11,10 @@ import {
   INITIAL_DEVOTION_RECORD_STATE,
   projectActiveSession,
   INITIAL_ACTIVE_SESSION_STATE,
+  createSnapshotIfNeeded,
+  deserializeSnapshotState,
 } from '@tododoro/domain';
-import type { SnapshotCreatedEvent } from '@tododoro/domain';
+import type { DomainEvent, SnapshotCreatedEvent, SnapshotReadResult } from '@tododoro/domain';
 import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
 import { SystemClock } from './adapters/SystemClock.js';
@@ -31,33 +33,72 @@ async function bootstrap() {
   let sessionState = INITIAL_ACTIVE_SESSION_STATE;
 
   try {
-    const allEvents = await eventStore.readAll();
-    const repairedEvents = repairEvents(allEvents, clock, idGenerator);
+    // Attempt optimized snapshot-aware read first
+    let snapshotResult: SnapshotReadResult | null = null;
+    try {
+      snapshotResult = await eventStore.readFromLatestSnapshot();
+    } catch {
+      // Snapshot read failed — fall back to readAll()
+    }
+
+    let rawEvents: readonly DomainEvent[];
+    let lastSnapshot: SnapshotCreatedEvent | null;
+
+    if (snapshotResult) {
+      rawEvents = snapshotResult.events;
+      lastSnapshot = snapshotResult.snapshot;
+    } else {
+      // Fallback: load all events and find snapshot in memory
+      const allEvents = await eventStore.readAll();
+      const foundSnapshot = [...allEvents]
+        .reverse()
+        .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated') ?? null;
+
+      if (foundSnapshot) {
+        const snapshotIndex = allEvents.indexOf(foundSnapshot);
+        rawEvents = allEvents.slice(snapshotIndex + 1);
+        lastSnapshot = foundSnapshot;
+      } else {
+        rawEvents = allEvents;
+        lastSnapshot = null;
+      }
+    }
+
+    // Repair only the post-snapshot events (pre-snapshot events were already repaired at snapshot creation)
+    const repairedEvents = repairEvents(rawEvents, clock, idGenerator);
 
     // Persist any events synthesized by the repair pipeline (e.g. auto-completed orphaned sessions).
     // If persisting a synthesized event fails, skip it — it will be re-created on next boot.
-    const originalEventIds = new Set(allEvents.map((e) => e.eventId));
+    const originalEventIds = new Set(rawEvents.map((e) => e.eventId));
     const synthesizedEvents = repairedEvents.filter((e) => !originalEventIds.has(e.eventId));
     for (const event of synthesizedEvents) {
       try { await eventStore.append(event); } catch { /* skip — re-created on next boot */ }
     }
 
-    const lastSnapshot = [...repairedEvents]
-      .reverse()
-      .find((e): e is SnapshotCreatedEvent => e.eventType === 'SnapshotCreated');
-
     if (lastSnapshot) {
-      const snapshotIndex = repairedEvents.indexOf(lastSnapshot);
-      const eventsAfterSnapshot = repairedEvents.slice(snapshotIndex + 1);
-      todoListState = eventsAfterSnapshot.reduce(projectTodoList, lastSnapshot.snapshotState.todoList);
-      shelfState = eventsAfterSnapshot.reduce(projectShelf, lastSnapshot.snapshotState.shelf);
-      devotionState = eventsAfterSnapshot.reduce(projectDevotionRecord, lastSnapshot.snapshotState.devotionRecord);
-      sessionState = eventsAfterSnapshot.reduce(projectActiveSession, lastSnapshot.snapshotState.activeSession);
+      const snapshotState = deserializeSnapshotState(lastSnapshot.snapshotState);
+      todoListState = repairedEvents.reduce(projectTodoList, snapshotState.todoList);
+      shelfState = repairedEvents.reduce(projectShelf, snapshotState.shelf);
+      devotionState = repairedEvents.reduce(projectDevotionRecord, snapshotState.devotionRecord);
+      sessionState = repairedEvents.reduce(projectActiveSession, snapshotState.activeSession);
     } else {
       todoListState = repairedEvents.reduce(projectTodoList, INITIAL_TODO_LIST_STATE);
       shelfState = repairedEvents.reduce(projectShelf, INITIAL_SHELF_STATE);
       devotionState = repairedEvents.reduce(projectDevotionRecord, INITIAL_DEVOTION_RECORD_STATE);
       sessionState = repairedEvents.reduce(projectActiveSession, INITIAL_ACTIVE_SESSION_STATE);
+    }
+
+    // Snapshot creation: if events since last snapshot >= threshold, create a new snapshot
+    // Use rawEvents.length (actual stored count) not repairedEvents.length (which may differ after dedup/skip)
+    const eventCountSinceSnapshot = rawEvents.length;
+    const snapshotEvent = createSnapshotIfNeeded(
+      eventCountSinceSnapshot,
+      { todoList: todoListState, shelf: shelfState, devotionRecord: devotionState, activeSession: sessionState },
+      clock,
+      idGenerator,
+    );
+    if (snapshotEvent) {
+      try { await eventStore.append(snapshotEvent); } catch { /* skip — will retry on next boot */ }
     }
   } catch {
     // Fall back to initial state — canvas renders empty rather than crashing.
