@@ -97,7 +97,7 @@ development_status:
   6-3-tolerant-boot-from-corrupted-or-incomplete-event-log: done
   6-4-schema-migration-and-event-versioning: done
   6-5-snapshot-based-replay-for-large-event-logs: done
-  6-6-production-security-headers-and-csp: backlog
+  6-6-production-security-headers-and-csp: complete
   epic-6-retrospective: optional
 
   # Epic 7: Settings & Personalisation
