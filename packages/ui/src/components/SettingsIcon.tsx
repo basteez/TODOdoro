@@ -1,3 +1,9 @@
+import { useState, useCallback } from 'react';
+
+interface SettingsIconProps {
+  onClick?: () => void;
+}
+
 const settingsIconStyle: React.CSSProperties = {
   position: 'fixed',
   top: 24,
@@ -10,22 +16,31 @@ const settingsIconStyle: React.CSSProperties = {
   background: 'none',
   border: 'none',
   cursor: 'pointer',
-  opacity: 0.35,
   color: 'var(--text-primary)',
   borderRadius: 8,
   transition: 'opacity 0.15s ease',
   padding: 0,
 };
 
-export function SettingsIcon() {
+export function SettingsIcon({ onClick }: SettingsIconProps) {
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const visible = hovered || focused;
+
+  const onMouseEnter = useCallback(() => setHovered(true), []);
+  const onMouseLeave = useCallback(() => setHovered(false), []);
+  const onFocus = useCallback(() => setFocused(true), []);
+  const onBlur = useCallback(() => setFocused(false), []);
+
   return (
     <button
       aria-label="Open settings"
-      style={settingsIconStyle}
-      onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '1')}
-      onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '0.35')}
-      onFocus={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '1')}
-      onBlur={(e) => ((e.currentTarget as HTMLButtonElement).style.opacity = '0.35')}
+      style={{ ...settingsIconStyle, opacity: visible ? 1 : 0.35 }}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <circle cx="10" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.5" />

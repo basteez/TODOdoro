@@ -67,6 +67,15 @@ describe('AnalogTimerWipe', () => {
     expect(Number(foreground.getAttribute('stroke-dashoffset'))).toBeCloseTo(0, 0);
   });
 
+  it('foreground circle uses CSS transition (suppressed by global reduced-motion rule)', () => {
+    const { container } = render(<AnalogTimerWipe elapsedMs={0} configuredDurationMs={DURATION} />);
+    const circles = container.querySelectorAll('circle');
+    const foreground = circles[1]!;
+    // The transition is inline CSS — the global @media (prefers-reduced-motion: reduce) rule
+    // overrides it with transition-duration: 0s !important
+    expect(foreground.style.transition).toContain('stroke-dashoffset');
+  });
+
   it('clamps progress to [0, 1] range', () => {
     // Over-elapsed — should clamp to 1 (offset = 0)
     const { container } = render(<AnalogTimerWipe elapsedMs={DURATION + 5000} configuredDurationMs={DURATION} />);

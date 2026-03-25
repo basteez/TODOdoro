@@ -1,6 +1,6 @@
 import { Component, useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode, ErrorInfo, MouseEvent as ReactMouseEvent } from 'react';
-import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker, ReleaseRitual, ReleaseEulogy, ShelfDrawer, computeTimeSpan } from '@tododoro/ui';
+import { CanvasHint, ConstellationCanvas, TodoCard, SkipLink, ShelfIcon, SettingsIcon, SettingsPanel, AnalogTimerWipe, CompletionMoment, ExplorationButton, CardPicker, ReleaseRitual, ReleaseEulogy, ShelfDrawer, computeTimeSpan } from '@tododoro/ui';
 import type { TodoCardData, DevotionRecordSession } from '@tododoro/ui';
 import type { Node, NodeTypes, OnNodesChange } from '@xyflow/react';
 import { useReactFlow, ReactFlowProvider, useNodesState } from '@xyflow/react';
@@ -9,7 +9,9 @@ import { useCanvasStore } from './stores/useCanvasStore.js';
 import { useSessionStore } from './stores/useSessionStore.js';
 import { handleDeclareTodo, handleRenameTodo, handlePositionTodo, handleSealTodo, handleReleaseTodo } from './commands/todoCommands.js';
 import { handleStartSession, handleCompleteSession, handleAbandonSession, handleAttributeExplorationSession } from './commands/sessionCommands.js';
+import { useSettingsStore } from './stores/useSettingsStore.js';
 import { useSessionTick } from './hooks/useSessionTick.js';
+import { useThemeEffect } from './hooks/useThemeEffect.js';
 import { SystemClock } from './adapters/SystemClock.js';
 import { CryptoIdGenerator } from './adapters/CryptoIdGenerator.js';
 
@@ -495,6 +497,17 @@ function Canvas() {
   const shelf = useCanvasStore((s) => s.shelf);
   const devotionRecord = useCanvasStore((s) => s.devotionRecord);
   const [isShelfOpen, setIsShelfOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const workDurationMs = useSettingsStore((s) => s.workDurationMs);
+  const shortBreakMs = useSettingsStore((s) => s.shortBreakMs);
+  const longBreakMs = useSettingsStore((s) => s.longBreakMs);
+  const setWorkDuration = useSettingsStore((s) => s.setWorkDuration);
+  const setShortBreak = useSettingsStore((s) => s.setShortBreak);
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
+  const setLongBreak = useSettingsStore((s) => s.setLongBreak);
+
+  useThemeEffect();
 
   if (isBooting) {
     return null;
@@ -506,7 +519,19 @@ function Canvas() {
         <CanvasInner />
       </ReactFlowProvider>
       <ShelfIcon onClick={() => setIsShelfOpen(true)} />
-      <SettingsIcon />
+      <SettingsIcon onClick={() => setIsSettingsOpen(true)} />
+      <SettingsPanel
+        open={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        workDurationMs={workDurationMs}
+        shortBreakMs={shortBreakMs}
+        longBreakMs={longBreakMs}
+        onWorkDurationChange={setWorkDuration}
+        onShortBreakChange={setShortBreak}
+        onLongBreakChange={setLongBreak}
+        theme={theme}
+        onThemeChange={setTheme}
+      />
       <ShelfDrawer
         open={isShelfOpen}
         onClose={() => setIsShelfOpen(false)}
