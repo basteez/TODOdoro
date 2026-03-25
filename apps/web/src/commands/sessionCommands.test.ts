@@ -16,6 +16,8 @@ function createMockEventStore(events: DomainEvent[] = []): EventStore {
     append: vi.fn<EventStore['append']>(() => Promise.resolve()),
     readAll: vi.fn<EventStore['readAll']>(() => Promise.resolve(events)),
     readByAggregate: vi.fn<EventStore['readByAggregate']>(() => Promise.resolve([])),
+    count: vi.fn<EventStore['count']>(() => Promise.resolve(events.length)),
+    readFromLatestSnapshot: vi.fn<EventStore['readFromLatestSnapshot']>(() => Promise.resolve({ snapshot: null, events })),
   };
 }
 

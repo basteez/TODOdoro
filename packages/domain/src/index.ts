@@ -17,6 +17,7 @@ export type {
 
 export type {
   EventStore,
+  SnapshotReadResult,
   Clock,
   IdGenerator,
 } from './ports.js';
@@ -63,3 +64,6 @@ export { INITIAL_SHELF_STATE, projectShelf } from './projections/shelf.js';
 
 export type { ActiveSessionReadModel } from './projections/activeSession.js';
 export { INITIAL_ACTIVE_SESSION_STATE, projectActiveSession } from './projections/activeSession.js';
+
+// Snapshot
+export { createSnapshotIfNeeded, serializeSnapshotState, deserializeSnapshotState } from './snapshot.js';
