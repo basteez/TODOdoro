@@ -23,5 +23,7 @@ export { ReleaseEulogy } from './components/ReleaseEulogy.js';
 export type { ReleaseEulogyProps } from './components/ReleaseEulogy.js';
 export { ShelfCard } from './components/ShelfCard.js';
 export type { ShelfCardProps, ShelfCardItem } from './components/ShelfCard.js';
+export { SettingsPanel } from './components/SettingsPanel.js';
+export type { SettingsPanelProps, ThemeOption } from './components/SettingsPanel.js';
 export { ShelfDrawer } from './components/ShelfDrawer.js';
 export type { ShelfDrawerProps } from './components/ShelfDrawer.js';

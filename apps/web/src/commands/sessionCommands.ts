@@ -9,10 +9,9 @@ import {
 import type { EventStore, Clock, IdGenerator, SessionAttributedEvent } from '@tododoro/domain';
 import { useSessionStore } from '../stores/useSessionStore.js';
 import { useCanvasStore } from '../stores/useCanvasStore.js';
+import { useSettingsStore } from '../stores/useSettingsStore.js';
 
 type Result = { ok: true } | { ok: false; error: string };
-
-const DEFAULT_DURATION_MS = 25 * 60 * 1000; // 25 minutes
 
 export async function handleStartSession(
   todoId: string | null,
@@ -24,7 +23,8 @@ export async function handleStartSession(
     const events = await eventStore.readAll();
     const sessionState = events.reduce(reduceSession, INITIAL_SESSION_STATE);
 
-    const event = startSession(sessionState, todoId, DEFAULT_DURATION_MS, clock, idGenerator);
+    const workDurationMs = useSettingsStore.getState().workDurationMs;
+    const event = startSession(sessionState, todoId, workDurationMs, clock, idGenerator);
     if (event instanceof Error) {
       return { ok: false, error: event.message };
     }
