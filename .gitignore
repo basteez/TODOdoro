@@ -12,3 +12,4 @@ public/dist
 *.tsbuildinfo
 .pnpm-store
 coverage
+.playwright-mcp
