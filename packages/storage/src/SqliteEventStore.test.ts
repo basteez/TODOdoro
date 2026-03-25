@@ -329,6 +329,48 @@ describe('SqliteEventStore', () => {
     });
   });
 
+  describe('schemaVersion persistence', () => {
+    it('persists schemaVersion in both the column and the JSON payload', async () => {
+      const event = makeTodoDeclared();
+      await store.append(event);
+
+      // Verify raw row has correct schema_version column
+      expect(mockRows).toHaveLength(1);
+      expect(mockRows[0]!.schema_version).toBe(CURRENT_SCHEMA_VERSION);
+
+      // Verify payload also contains schemaVersion
+      const parsedPayload = JSON.parse(mockRows[0]!.payload);
+      expect(parsedPayload.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    });
+
+    it('preserves different schemaVersion values across events', async () => {
+      const eventV1: TodoDeclaredEvent = {
+        eventType: 'TodoDeclared',
+        eventId: 'evt-v1',
+        aggregateId: 'todo-v1',
+        schemaVersion: 1,
+        timestamp: 1_000_000,
+        title: 'V1 Todo',
+      };
+      const eventV2: TodoDeclaredEvent = {
+        eventType: 'TodoDeclared',
+        eventId: 'evt-v2',
+        aggregateId: 'todo-v2',
+        schemaVersion: 2,
+        timestamp: 2_000_000,
+        title: 'V2 Todo',
+      };
+
+      await store.append(eventV1);
+      await store.append(eventV2);
+
+      const events = await store.readAll();
+      expect(events).toHaveLength(2);
+      expect(events[0]!.schemaVersion).toBe(1);
+      expect(events[1]!.schemaVersion).toBe(2);
+    });
+  });
+
   describe('destroy', () => {
     it('tears down the SQLocal instance', async () => {
       await store.destroy();
